@@ -1,178 +1,159 @@
-# Color by Numbers - 像素级数字填色游戏
+[简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
-一个基于 Web 的交互式像素级数字填色游戏，用户可以上传图片或通过 URL 导入图片，系统会自动将图片转换为像素级数字填色游戏。每个像素都是一个可点击的填色区域。
+# Color by Numbers - Pixel-level Digital Coloring Game
 
-## 🎨 功能特性
+A web-based interactive pixel-level digital coloring game where users can upload images. The system automatically converts images into a pixel-level digital coloring game. Each pixel is a clickable coloring area.
 
-### 核心功能
-- **图片导入**: 支持本地文件上传和 URL 链接导入
-- **像素级精确**: 每个像素都是一个独立的可点击填色区域
-- **智能颜色量化**: 自动将复杂图片简化为可管理的颜色调色板
-- **高倍放大显示**: 游戏开始时自动放大500%-800%，便于操作像素级别的填色
-- **交互式填色**: 点击像素区域进行填色，支持缩放和平移
-- **实时进度**: 显示填色进度和完成状态
-- **颜色图例**: 显示数字与颜色的对应关系
+## 🎨 Features
 
-### 交互体验
-- **极致缩放**: 支持高达5000%的缩放，查看单个像素细节
-- **精确点击**: 像素级精确的点击检测和填色
-- **智能显示**: 根据缩放级别自动显示/隐藏像素数字和边框
-- **平移功能**: 拖拽移动画布视图
-- **进度追踪**: 实时显示完成进度
-- **重置功能**: 一键重新开始游戏
+### Core Features
+- **Image Import**: Supports local file upload
+- **Pixel-level Precision**: Each pixel is an independent, clickable coloring area
+- **Intelligent Color Quantization**: Automatically simplifies complex images into a manageable color palette
+- **High Magnification Display**: Automatically magnifies 500%-800% at the start of the game for easy pixel-level coloring
+- **Interactive Coloring**: Click pixel areas to color, supports zoom and pan
+- **Real-time Progress**: Displays coloring progress and completion status
+- **Color Legend**: Shows the correspondence between numbers and colors
 
-### 像素级游戏特色
-- **1:1像素映射**: 原图每个像素对应游戏中一个填色格子
-- **小图片优化**: 特别适合8x8、16x16等小尺寸像素艺术
-- **高倍放大**: 初始500%-800%放大，最高支持5000%缩放
-- **精确填色**: 像素级精确度，完美还原原图
+### Interactive Experience
+- **Extreme Zoom**: Supports up to 5000% zoom to view single pixel details
+- **Precise Clicking**: Pixel-level precise click detection and coloring
+- **Smart Display**: Automatically shows/hides pixel numbers and borders based on zoom level
+- **Panning Function**: Drag to move the canvas view
+- **Progress Tracking**: Real-time display of completion progress
+- **Reset Function**: One-click restart game
 
-## 🛠️ 技术栈
+### Pixel-level Game Characteristics
+- **1:1 Pixel Mapping**: Each pixel of the original image corresponds to one coloring cell in the game
+- **Precise Coloring**: Pixel-level accuracy, perfectly restoring the original image
 
-### 前端技术
-- **HTML5**: 页面结构和 Canvas 绘图
-- **CSS3**: 现代化 UI 设计和响应式布局
-- **JavaScript (ES6+)**: 核心游戏逻辑和交互
-- **Canvas API**: 图像处理和游戏渲染
+## 🛠️ Tech Stack
 
-### 核心算法
-- **颜色量化**: K-means 聚类和中位切分算法
-- **图像处理**: 像素数据分析和颜色空间转换
-- **坐标变换**: 缩放平移状态下的精确坐标映射
+### Frontend Technologies
+- **HTML5**: Page structure and Canvas drawing
+- **CSS3**: Modern UI design and responsive layout
+- **JavaScript (ES6+)**: Core game logic and interaction
+- **Canvas API**: Image processing and game rendering
 
-## 📁 项目结构
+### Core Algorithms
+- **Color Quantization**: K-means clustering and median cut algorithms
+- **Image Processing**: Pixel data analysis and color space conversion
+- **Coordinate Transformation**: Precise coordinate mapping under zoom and pan states
+
+## 📁 Project Structure
 
 ```
 pixel-study/
-├── index.html              # 主页面
+├── index.html              # Main page
 ├── css/
-│   ├── style.css           # 主样式文件
-│   └── responsive.css      # 响应式样式
+│   ├── style.css           # Main stylesheet
+│   └── responsive.css      # Responsive styles
 ├── js/
-│   ├── main.js             # 主应用逻辑
-│   ├── imageProcessor.js   # 图像处理模块
-│   ├── gameEngine.js       # 游戏引擎
-│   ├── canvasRenderer.js   # Canvas 渲染器
-│   ├── colorQuantizer.js   # 颜色量化算法
-│   └── utils.js            # 工具函数
+│   ├── main.js             # Main application logic
+│   ├── imageProcessor.js   # Image processing module
+│   ├── gameEngine.js       # Game engine
+│   ├── canvasRenderer.js   # Canvas renderer
+│   ├── colorQuantizer.js   # Color quantization algorithm
+│   └── utils.js            # Utility functions
 ├── assets/
-│   ├── icons/              # 图标资源
-│   └── sample-images/      # 示例图片
-├── server/                 # 可选的后端代理
-│   ├── server.js           # Node.js 服务器
-│   └── package.json        # 后端依赖
-└── README.md               # 项目说明
+│   ├── icons/              # Icon resources
+│   └── sample-images/      # Sample images
+├── server/                 # Optional backend proxy
+│   ├── server.js           # Node.js server
+│   └── package.json        # Backend dependencies
+└── README.md               # Project description
 ```
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 方式一：直接运行（推荐）
-1. 克隆或下载项目到本地
-2. 使用现代浏览器打开 `index.html`
-3. 开始享受数字填色游戏！
+### Method 1: Direct Run (Recommended)
+1. Clone or download the project locally.
+2. Open `index.html` with a modern browser.
+3. Start enjoying the digital coloring game!
 
-### 方式二：本地服务器运行
+### Method 2: Run with a Local Server
 ```bash
-# 使用 Python 启动本地服务器
+# Start a local server using Python
 python -m http.server 8000
 
-# 或使用 Node.js
+# Or use Node.js
 npx http-server
 
-# 然后访问 http://localhost:8000
+# Then visit http://localhost:8000
 ```
 
-### 方式三：启用后端代理（解决 CORS 问题）
+### Method 3: Enable Backend Proxy (to solve CORS issues)
 ```bash
 cd server
 npm install
 npm start
 
-# 后端将在 http://localhost:3000 运行
+# The backend will run at http://localhost:3000
 ```
 
-## 🎮 使用说明
+## 🎮 Usage Instructions
 
-1. **导入图片**
-   - 点击"选择文件"上传本地图片（推荐小尺寸图片，如8x8到64x64像素）
-   - 或在 URL 输入框中粘贴图片链接
+1. **Import Image**
+   - Click "Choose File" to upload a local image (small images like 8x8 to 64x64 pixels are recommended).
 
-2. **设置参数**
-   - 选择颜色数量（8-32种颜色）
-   - 选择处理模式：像素级精确或自动优化
+2. **Generate Pixel Coloring Game**
+   - The system will automatically process the image and generate a pixel-level coloring game.
+   - The game will automatically zoom to 500%-800% for easier operation.
 
-3. **生成像素填色游戏**
-   - 点击"生成像素填色游戏"按钮
-   - 系统会自动处理图片并生成像素级填色游戏
-   - 游戏会自动放大到500%-800%以便操作
+3. **Start Coloring**
+   - Each pixel is a clickable coloring area.
+   - Use the mouse wheel to zoom in/out and see pixel details (up to 5000%).
+   - Click on the numbers in the gray pixels to color them.
+   - Refer to the color legend on the right to understand the number-to-color mapping.
 
-4. **开始填色**
-   - 每个像素都是一个可点击的填色区域
-   - 使用鼠标滚轮缩放查看像素细节（最高5000%）
-   - 点击灰色像素中的数字进行填色
-   - 参考右侧颜色图例了解数字对应的颜色
+4. **Game Controls**
+   - Drag to pan the canvas view.
+   - Use control buttons to reset or view the original image.
+   - Pixel numbers will be displayed when the zoom level is high enough.
 
-5. **游戏控制**
-   - 拖拽移动画布视图
-   - 使用控制按钮重置或查看原图
-   - 当缩放级别足够高时会显示像素数字
+## 🌟 Advanced Features
 
-## 🔧 配置选项
+### Algorithm Optimization
+- **Intelligent Color Selection**: Color quantization based on visual importance.
+- **Adaptive Grid**: Adjusts grid density based on image complexity.
+- **Performance Optimization**: Web Workers for handling large images.
 
-### 颜色量化设置
-- 推荐颜色数量: 8-16 种（适合像素艺术）
-- 支持的图片格式: JPG, PNG, GIF, WebP
-- 推荐图片尺寸: 8x8 到 64x64 像素（像素级精确模式）
+### User Experience
+- **Progress Saving**: Local storage for game progress.
+- **Multiple Difficulties**: Easy, Medium, Hard modes.
+- **Sharing Function**: Export completed artwork.
 
-### 游戏设置
-- 处理模式: 像素级精确（1:1像素映射）
-- 初始缩放: 500%-800%（自动设置）
-- 最大缩放: 5000%（查看单像素细节）
-- 填色模式: 像素级精确点击填色
+## 🐛 Troubleshooting
 
-## 🌟 高级功能
+### Common Issues
+1. **Image Fails to Load**: Try using a local file.
+2. **CORS Error**: Enable the backend proxy server.
+3. **Performance Issues**: Try using smaller images or reducing the number of colors.
 
-### 算法优化
-- **智能颜色选择**: 基于视觉重要性的颜色量化
-- **自适应网格**: 根据图片复杂度调整网格密度
-- **性能优化**: Web Workers 处理大图片
-
-### 用户体验
-- **进度保存**: 本地存储游戏进度
-- **多种难度**: 简单、中等、困难模式
-- **分享功能**: 导出完成的作品
-
-## 🐛 故障排除
-
-### 常见问题
-1. **图片无法加载**: 检查 URL 是否有效，或尝试使用本地文件
-2. **CORS 错误**: 启用后端代理服务器
-3. **性能问题**: 尝试使用较小的图片或降低颜色数量
-
-### 浏览器兼容性
+### Browser Compatibility
 - Chrome 60+
 - Firefox 55+
 - Safari 12+
 - Edge 79+
 
-## 🤝 贡献指南
+## 🤝 Contribution Guide
 
-欢迎提交 Issue 和 Pull Request！
+Issues and Pull Requests are welcome!
 
-1. Fork 项目
-2. 创建功能分支
-3. 提交更改
-4. 推送到分支
-5. 创建 Pull Request
+1. Fork the project.
+2. Create a feature branch.
+3. Commit your changes.
+4. Push to the branch.
+5. Create a Pull Request.
 
-## 📄 版权许可
+## 📄 License
 
-本软件根据 GNU 通用公共许可证第3版（GPLv3）授权。详情请参阅 `LICENSE` 文件。
+This software is licensed under the GNU General Public License v3.0. See the `LICENSE` file for details.
 
-## 🙏 致谢
+## 🙏 Acknowledgments
 
-感谢所有为这个项目做出贡献的开发者和用户！
+Thanks to all developers and users who contributed to this project!
 
 ---
 
-**开始您的数字填色之旅吧！** 🎨✨ 
+**Start your digital coloring journey!** 🎨✨ 
