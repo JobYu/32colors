@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color by Numbers - 数字填色游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部标题 -->
+        <header class="header">
+            <h1>🎨 Color by Numbers</h1>
+            <p>将您的图片转换为像素级数字填色游戏</p>
+        </header>
+
+        <!-- 图片输入区域 -->
+        <section class="input-section">
+            <div class="input-group">
+                <div class="file-upload">
+                    <label for="imageLoader" class="upload-btn">
+                        📁 选择图片文件
+                    </label>
+                    <input type="file" id="imageLoader" accept="image/*" style="display: none;">
+                    <span class="file-name" id="fileName">未选择文件</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 主游戏区域 -->
+        <main class="game-area">
+            <!-- 左侧游戏画布 -->
+            <div class="canvas-container">
+                <div class="canvas-wrapper">
+                    <canvas id="gameCanvas"></canvas>
+                    <div class="loading-overlay" id="loadingOverlay">
+                        <div class="spinner"></div>
+                        <p>正在处理图片...</p>
+                    </div>
+                </div>
+                
+                <!-- 画布控制按钮 -->
+                <div class="canvas-controls">
+                    <button id="zoomInBtn" title="放大">🔍+</button>
+                    <button id="zoomOutBtn" title="缩小">🔍-</button>
+                </div>
+                
+                <!-- 进度条 -->
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <span class="progress-text" id="progressText">0%</span>
+                </div>
+            </div>
+
+            <!-- 右侧颜色图例和控制面板 -->
+            <aside class="sidebar">
+                <div class="color-legend">
+                    <h3>🎨 颜色图例</h3>
+                    <div class="legend-container" id="legendContainer">
+                        <p class="legend-placeholder">生成游戏后显示颜色对应关系</p>
+                    </div>
+                </div>
+                
+                <div class="game-controls">
+                    <h3>🎮 游戏控制</h3>
+                    <button id="resetGameBtn" class="control-btn">🔄 重新开始</button>
+                    <button id="autoFillBtn" class="control-btn">🤖 自动填充</button>
+                    <button id="saveProgressBtn" class="control-btn">💾 保存进度</button>
+                </div>
+                
+                <div class="game-info">
+                    <h3>📊 游戏信息</h3>
+                    <div class="info-item">
+                        <span>总区域:</span>
+                        <span id="totalAreas">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span>已完成:</span>
+                        <span id="completedAreas">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span>剩余:</span>
+                        <span id="remainingAreas">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span>用时:</span>
+                        <span id="gameTime">00:00</span>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- 成功完成模态框 -->
+        <div class="modal" id="successModal">
+            <div class="modal-content">
+                <h2>🎉 恭喜完成！</h2>
+                <p>您已成功完成这幅数字填色画！</p>
+                <div class="modal-buttons">
+                    <button id="shareBtn" class="modal-btn">📤 分享作品</button>
+                    <button id="newGameBtn" class="modal-btn">🎮 新游戏</button>
+                    <button id="closeModalBtn" class="modal-btn secondary">关闭</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <p>&copy; 2024 Color by Numbers. 享受数字填色的乐趣！</p>
+        </footer>
+    </div>
+
+    <!-- JavaScript 模块 -->
+    <script src="js/utils.js"></script>
+    <script src="js/colorQuantizer.js"></script>
+    <script src="js/imageProcessor.js"></script>
+    <script src="js/canvasRenderer.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html> 
