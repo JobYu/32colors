@@ -165,9 +165,9 @@ npm start
 4. 推送到分支
 5. 创建 Pull Request
 
-## 📄 许可证
+## 📄 版权许可
 
-MIT License - 详见 LICENSE 文件
+本软件根据 GNU 通用公共许可证第3版（GPLv3）授权。详情请参阅 `LICENSE` 文件。
 
 ## 🙏 致谢
 
