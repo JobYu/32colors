@@ -44,10 +44,21 @@ class GameEngine {
         this.resetGameState();
         this.calculateTotalCells();
         
-        // 尝试加载保存的进度
-        this.loadProgress();
+        // Initialize colorStats properly
+        this.gameState.colorStats = []; // Ensure it's always an array
+        if (this.gameData && this.gameData.palette && Array.isArray(this.gameData.palette)) {
+            this.gameState.colorStats = this.gameData.palette.map(p => ({
+                number: p.number,
+                totalCells: (this.gameData.gameGrid ? this.gameData.gameGrid.flat().filter(c => c && !c.isTransparent && c.number === p.number).length : 0),
+                completedCells: 0, // Initial state, will be updated by loadProgress or setGameAsCompleted
+                completionRate: 0  // Initial state, will be updated by loadProgress or setGameAsCompleted
+            }));
+        }
         
-        // 开始自动保存
+        // Attempt to load saved progress
+        this.loadProgress(); // This might update completedCells and completionRates in gameState and colorStats
+        
+        // Start auto-save
         if (this.settings.autoSave) {
             this.startAutoSave();
         }
@@ -139,25 +150,83 @@ class GameEngine {
      */
     restartGame() {
         if (!this.gameData) return;
-        
-        // 重置所有单元格状态
-        const { gameGrid } = this.gameData;
-        for (let row = 0; row < gameGrid.length; row++) {
-            for (let col = 0; col < gameGrid[row].length; col++) {
-                if (gameGrid[row][col]) {
-                    gameGrid[row][col].revealed = false;
+
+        this.gameState = {
+            isPlaying: true,
+            isPaused: false,
+            isCompleted: false,
+            startTime: Date.now(),
+            elapsedTime: 0,
+            pauseTime: 0,
+            completedCells: 0,
+            totalCells: this.gameData.gameGrid.flat().filter(cell => cell && !cell.isTransparent).length,
+            colorStats: this.gameData.palette.map(p => ({
+                number: p.number,
+                totalCells: this.gameData.gameGrid.flat().filter(c => c && !c.isTransparent && c.number === p.number).length,
+                completedCells: 0,
+                completionRate: 0
+            }))
+        };
+
+        // Reset all cells to not revealed (unless transparent)
+        this.gameData.gameGrid.forEach(row => {
+            row.forEach(cell => {
+                if (cell && !cell.isTransparent) {
+                    cell.revealed = false;
                 }
-            }
+            });
+        });
+
+        this.startTimer();
+        this.emit('progress', this.getGameStats());
+        console.log('Game restarted');
+    }
+
+    /**
+     * Sets the current game as completed, usually when loading a pre-completed artwork.
+     * @param {number} playTime - The time taken to complete the game (in seconds).
+     * @param {boolean} emitCompleteEvent - Whether to emit the complete event (default: true).
+     */
+    setGameAsCompleted(playTime = 0, emitCompleteEvent = true) {
+        if (!this.gameData || !this.gameState) {
+            console.warn("Cannot set game as completed: game data or state missing.");
+            return;
+        }
+
+        this.gameState.isPlaying = false;
+        this.gameState.isPaused = false;
+        this.gameState.isCompleted = true;
+        this.gameState.elapsedTime = playTime * 1000; // Convert seconds to ms
+        this.stopTimer();
+
+        // Mark all non-transparent cells as completed for stats
+        this.gameState.completedCells = this.gameState.totalCells;
+        this.gameState.colorStats.forEach(stat => {
+            stat.completedCells = stat.totalCells;
+            stat.completionRate = 100;
+        });
+
+        // Mark all grid cells as revealed (already done in main.js but good to ensure here too)
+        this.gameData.gameGrid.forEach(row => {
+            row.forEach(cell => {
+                if (cell && !cell.isTransparent) {
+                    cell.revealed = true;
+                }
+            });
+        });
+        
+        this.emit('progress', this.getGameStats()); // Update UI with 100% progress
+        
+        // Only emit complete event if requested (e.g., when actually completing a game, not when viewing completed artwork)
+        if (emitCompleteEvent) {
+            this.emit('complete', {
+                playTime: playTime,
+                totalCells: this.gameState.totalCells,
+                // ... other result details if needed ...
+            });
         }
         
-        this.resetGameState();
-        this.calculateTotalCells();
-        this.startGame();
-        
-        // 清除保存的进度
-        this.clearSavedProgress();
-        
-        Utils.showNotification('游戏已重新开始！', 'success');
+        console.log('Game set as completed.');
     }
 
     /**
@@ -460,6 +529,20 @@ class GameEngine {
         if (this.autoSaveTimer) {
             clearInterval(this.autoSaveTimer);
             this.autoSaveTimer = null;
+        }
+    }
+
+    /**
+     * Emits an event by calling the registered callback.
+     * @param {string} event - The name of the event to emit.
+     * @param {any} data - The data to pass to the event callback.
+     */
+    emit(event, data) {
+        const callbackName = `on${event.charAt(0).toUpperCase()}${event.slice(1)}`;
+        if (this.callbacks[callbackName] && typeof this.callbacks[callbackName] === 'function') {
+            this.callbacks[callbackName](data);
+        } else {
+            // console.warn(`No callback registered for event: ${event} or callback is not a function.`);
         }
     }
 

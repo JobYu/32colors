@@ -7,6 +7,7 @@ class ColorQuantizer {
     constructor() {
         this.maxIterations = 20;
         this.convergenceThreshold = 1;
+        this.transparentThreshold = 32; // Alpha values <= this are considered transparent (lowered to 32 for pixel art)
     }
 
     /**
@@ -16,45 +17,15 @@ class ColorQuantizer {
      * @returns {object} 量化结果 {palette, quantizedData}
      */
     kMeansQuantize(imageData, k) {
-        const pixels = this.extractPixels(imageData);
-        
-        // 如果像素数量少于目标颜色数，直接返回
-        if (pixels.length <= k) {
-            return {
-                palette: pixels.map((pixel, index) => ({
-                    color: pixel,
-                    number: index + 1,
-                    count: 1
-                })),
-                quantizedData: imageData
-            };
+        // Extract only opaque pixels for palette generation
+        const opaquePixelColors = this.extractPixels(imageData, this.transparentThreshold);
+
+        if (opaquePixelColors.length === 0) {
+            return { palette: [], quantizedData: imageData }; // Or handle as fully transparent
         }
-
-        // 初始化聚类中心
-        let centroids = this.initializeCentroids(pixels, k);
-        let assignments = new Array(pixels.length);
-        let converged = false;
-        let iteration = 0;
-
-        while (!converged && iteration < this.maxIterations) {
-            // 分配像素到最近的聚类中心
-            const newAssignments = this.assignPixelsToCentroids(pixels, centroids);
-            
-            // 检查是否收敛
-            converged = this.hasConverged(assignments, newAssignments);
-            assignments = newAssignments;
-
-            // 更新聚类中心
-            centroids = this.updateCentroids(pixels, assignments, k);
-            iteration++;
-        }
-
-        // 生成调色板
-        const palette = this.generatePalette(centroids, pixels, assignments);
         
-        // 量化图像数据
-        const quantizedData = this.quantizeImageData(imageData, palette);
-
+        const palette = this.generatePaletteFromPixels(opaquePixelColors, k, 'kmeans');
+        const quantizedData = this.quantizeImageData(imageData, palette, this.transparentThreshold);
         return { palette, quantizedData };
     }
 
@@ -65,72 +36,29 @@ class ColorQuantizer {
      * @returns {object} 量化结果
      */
     medianCutQuantize(imageData, targetColors) {
-        const pixels = this.extractPixels(imageData);
-        
-        if (pixels.length <= targetColors) {
-            return {
-                palette: pixels.map((pixel, index) => ({
-                    color: pixel,
-                    number: index + 1,
-                    count: 1
-                })),
-                quantizedData: imageData
-            };
+        const opaquePixelColors = this.extractPixels(imageData, this.transparentThreshold);
+
+        if (opaquePixelColors.length === 0) {
+            return { palette: [], quantizedData: imageData };
         }
 
-        // 创建初始颜色盒子
-        const initialBox = {
-            pixels: pixels,
-            min: { r: 0, g: 0, b: 0 },
-            max: { r: 255, g: 255, b: 255 }
-        };
-
-        this.updateBoxBounds(initialBox);
-        
-        // 递归分割颜色盒子
-        const boxes = [initialBox];
-        while (boxes.length < targetColors) {
-            // 找到最大的盒子进行分割
-            const boxToSplit = this.findLargestBox(boxes);
-            if (!boxToSplit || boxToSplit.pixels.length <= 1) break;
-
-            const newBoxes = this.splitBox(boxToSplit);
-            if (newBoxes.length === 2) {
-                const index = boxes.indexOf(boxToSplit);
-                boxes.splice(index, 1, ...newBoxes);
-            } else {
-                break;
-            }
-        }
-
-        // 从每个盒子生成代表颜色
-        const palette = boxes.map((box, index) => {
-            const avgColor = this.getAverageColor(box.pixels);
-            return {
-                color: avgColor,
-                number: index + 1,
-                count: box.pixels.length
-            };
-        });
-
-        // 量化图像数据
-        const quantizedData = this.quantizeImageData(imageData, palette);
-
+        const palette = this.generatePaletteFromPixels(opaquePixelColors, targetColors, 'median-cut');
+        const quantizedData = this.quantizeImageData(imageData, palette, this.transparentThreshold);
         return { palette, quantizedData };
     }
 
     /**
      * 从图像数据中提取像素
      * @param {ImageData} imageData - 图像数据
+     * @param {number} transparentThreshold - Alpha values <= this are considered transparent
      * @returns {Array} 像素数组
      */
-    extractPixels(imageData) {
+    extractPixels(imageData, transparentThreshold = 128) {
         const pixels = [];
         const data = imageData.data;
         
         for (let i = 0; i < data.length; i += 4) {
-            // 跳过透明像素
-            if (data[i + 3] > 128) {
+            if (data[i + 3] > transparentThreshold) {
                 pixels.push({
                     r: data[i],
                     g: data[i + 1],
@@ -276,14 +204,17 @@ class ColorQuantizer {
      * @returns {Array} 调色板
      */
     generatePalette(centroids, pixels, assignments) {
-        return centroids.map((centroid, index) => {
+        const palette = centroids.map((centroid, index) => {
             const count = assignments.filter(assignment => assignment === index).length;
             return {
                 color: centroid,
-                number: index + 1,
-                count: count
+                count: count,
+                brightness: Utils.getGrayscale(centroid.r, centroid.g, centroid.b)
             };
         }).filter(item => item.count > 0);
+
+        // Sorting and numbering will be done by the calling method (generatePaletteFromPixels)
+        return palette;
     }
 
     /**
@@ -376,46 +307,49 @@ class ColorQuantizer {
 
     /**
      * 量化图像数据
-     * @param {ImageData} imageData - 原始图像数据
+     * @param {ImageData} originalImageData - 原始图像数据
      * @param {Array} palette - 调色板
+     * @param {number} transparentThreshold - Alpha values <= this are considered transparent
      * @returns {ImageData} 量化后的图像数据
      */
-    quantizeImageData(imageData, palette) {
-        const quantizedData = new ImageData(
-            new Uint8ClampedArray(imageData.data),
-            imageData.width,
-            imageData.height
-        );
-        
-        const data = quantizedData.data;
-        
+    quantizeImageData(originalImageData, palette, transparentThreshold = 128) {
+        const { width, height, data } = originalImageData;
+        // Create a new ImageData object to store quantized data
+        const newCanvas = document.createElement('canvas');
+        newCanvas.width = width;
+        newCanvas.height = height;
+        const newCtx = newCanvas.getContext('2d');
+        const quantizedImageData = newCtx.createImageData(width, height);
+
         for (let i = 0; i < data.length; i += 4) {
-            if (data[i + 3] > 128) { // 非透明像素
-                const pixel = {
-                    r: data[i],
-                    g: data[i + 1],
-                    b: data[i + 2]
-                };
+            const alpha = data[i + 3];
+            if (alpha > transparentThreshold) {
+                const pixelColor = { r: data[i], g: data[i + 1], b: data[i + 2] };
                 
-                // 找到最近的调色板颜色
-                let minDistance = Infinity;
+                // Find the closest color in the palette
                 let closestColor = palette[0].color;
-                
-                for (const paletteItem of palette) {
-                    const distance = Utils.colorDistance(pixel, paletteItem.color);
+                let minDistance = Utils.colorDistance(pixelColor, closestColor);
+
+                for (let j = 1; j < palette.length; j++) {
+                    const distance = Utils.colorDistance(pixelColor, palette[j].color);
                     if (distance < minDistance) {
                         minDistance = distance;
-                        closestColor = paletteItem.color;
+                        closestColor = palette[j].color;
                     }
                 }
-                
-                data[i] = closestColor.r;
-                data[i + 1] = closestColor.g;
-                data[i + 2] = closestColor.b;
+                quantizedImageData.data[i] = closestColor.r;
+                quantizedImageData.data[i + 1] = closestColor.g;
+                quantizedImageData.data[i + 2] = closestColor.b;
+                quantizedImageData.data[i + 3] = 255; // Opaque
+            } else {
+                // Preserve original transparent/semi-transparent pixel
+                quantizedImageData.data[i] = data[i];
+                quantizedImageData.data[i + 1] = data[i + 1];
+                quantizedImageData.data[i + 2] = data[i + 2];
+                quantizedImageData.data[i + 3] = alpha;
             }
         }
-        
-        return quantizedData;
+        return quantizedImageData;
     }
 
     /**
@@ -453,16 +387,178 @@ class ColorQuantizer {
         }
         
         // 生成调色板
-        const palette = Array.from(colorMap.entries()).map(([colorKey, count], index) => {
+        let palette = Array.from(colorMap.entries()).map(([colorKey, count], index) => {
             const [r, g, b] = colorKey.split(',').map(Number);
+            const color = { r, g, b };
             return {
-                color: { r, g, b },
-                number: index + 1,
-                count: count
+                color: color,
+                count: count,
+                brightness: Utils.getGrayscale(color.r, color.g, color.b) // Calculate brightness
             };
         });
         
+        // Sort by brightness (ascending)
+        palette.sort((a, b) => a.brightness - b.brightness);
+
+        // Assign sequential numbers
+        palette.forEach((item, index) => {
+            item.number = index + 1;
+        });
+        
         return { palette, quantizedData };
+    }
+
+    /**
+     * Generates a color palette from a list of pixel colors using a specified algorithm.
+     * @param {Array<object>} opaquePixelColors - Array of {r, g, b} objects for opaque pixels.
+     * @param {number} k - Target number of colors in the palette.
+     * @param {string} algorithm - 'kmeans', 'median-cut', or 'simple'.
+     * @returns {Array<object>} The generated palette.
+     */
+    generatePaletteFromPixels(opaquePixelColors, k, algorithm = 'kmeans') {
+        console.log(`[ColorQuantizer Debug] generatePaletteFromPixels called with k=${k}, algorithm=${algorithm}, opaquePixels.length=${opaquePixelColors?.length}`);
+        
+        if (!opaquePixelColors || opaquePixelColors.length === 0) {
+            return [];
+        }
+
+        // If the number of unique opaque pixels is less than or equal to k,
+        // create a palette directly from these unique colors.
+        const uniqueColors = [];
+        const colorMap = new Map();
+        
+        // For small images or when we suspect few colors, use exact pixel matching
+        for (const pixel of opaquePixelColors) {
+            const colorString = `${pixel.r}-${pixel.g}-${pixel.b}`;
+            if (!colorMap.has(colorString)) {
+                colorMap.set(colorString, { color: pixel, count: 0 });
+                uniqueColors.push(pixel);
+            }
+            colorMap.get(colorString).count++;
+        }
+
+        // Debug logging
+        console.log(`[ColorQuantizer Debug] Found ${uniqueColors.length} unique colors from ${opaquePixelColors.length} opaque pixels. Target: ${k} colors.`);
+        if (uniqueColors.length <= 10) { // Only log if reasonable number of unique colors
+            console.log('[ColorQuantizer Debug] Unique colors found:', uniqueColors.map(c => `rgb(${c.r},${c.g},${c.b})`));
+            console.log('[ColorQuantizer Debug] Color counts:', uniqueColors.map(c => {
+                const colorString = `${c.r}-${c.g}-${c.b}`;
+                return `rgb(${c.r},${c.g},${c.b}): ${colorMap.get(colorString).count} pixels`;
+            }));
+        }
+
+        if (uniqueColors.length <= k) {
+            const palette = uniqueColors.map((color, index) => ({
+                color: color,
+                number: index + 1,
+                count: colorMap.get(`${color.r}-${color.g}-${color.b}`).count,
+                brightness: Utils.getGrayscale(color.r, color.g, color.b)
+            }));
+            palette.sort((a, b) => a.brightness - b.brightness);
+            palette.forEach((item, index) => item.number = index + 1);
+            console.log(`[ColorQuantizer Debug] Returning ${palette.length} colors directly (no quantization needed).`);
+            return palette;
+        }
+
+        // Proceed with the chosen quantization algorithm for palette generation
+        let palette;
+        if (algorithm === 'median-cut') {
+            palette = this._medianCutPalette(opaquePixelColors, k);
+        } else if (algorithm === 'simple') {
+            // Simple quantize might not be ideal for palette generation from a list,
+            // as it typically works by reducing bit depth of all pixels in an ImageData.
+            // We'll use a K-means fallback for 'simple' if opaquePixelColors is the input.
+            console.warn("SimpleQuantize for direct palette generation from pixel list is not optimal, using K-means as fallback.");
+            palette = this._kMeansPalette(opaquePixelColors, k);
+        } else { // Default to k-means
+            palette = this._kMeansPalette(opaquePixelColors, k);
+        }
+        
+        // Sort and assign numbers (already done if uniqueColors.length <= k)
+        if (uniqueColors.length > k) {
+            palette.sort((a, b) => a.brightness - b.brightness);
+            palette.forEach((item, index) => {
+                item.number = index + 1;
+                // item.count is already set by _kMeansPalette or _medianCutPalette
+            });
+        }
+        return palette;
+    }
+
+    /**
+     * Internal K-means for generating palette from a pixel list.
+     * @param {Array<object>} pixels - Array of {r, g, b} pixel colors.
+     * @param {number} k - Target number of colors.
+     * @returns {Array<object>} Palette.
+     */
+    _kMeansPalette(pixels, k) {
+        if (pixels.length <= k) {
+             // This case should be handled by the caller (generatePaletteFromPixels)
+            // but as a safeguard:
+            return pixels.map((pixel, index) => ({
+                color: pixel,
+                number: index + 1, // Temp number, will be reassigned after sort
+                count: 1,
+                brightness: Utils.getGrayscale(pixel.r, pixel.g, pixel.b)
+            }));
+        }
+
+        let centroids = this.initializeCentroids(pixels, k);
+        let assignments = new Array(pixels.length);
+        let converged = false;
+        let iteration = 0;
+
+        while (!converged && iteration < this.maxIterations) {
+            const newAssignments = this.assignPixelsToCentroids(pixels, centroids);
+            converged = this.hasConverged(assignments, newAssignments);
+            assignments = newAssignments;
+            centroids = this.updateCentroids(pixels, assignments, k);
+            iteration++;
+        }
+        return this.generatePalette(centroids, pixels, assignments); // generatePalette now used internally
+    }
+
+    /**
+     * Internal Median Cut for generating palette from a pixel list.
+     * @param {Array<object>} pixels - Array of {r, g, b} pixel colors.
+     * @param {number} targetColors - Target number of colors.
+     * @returns {Array<object>} Palette.
+     */
+    _medianCutPalette(pixels, targetColors) {
+        if (pixels.length <= targetColors) {
+            // This case should be handled by the caller (generatePaletteFromPixels)
+            return pixels.map((pixel, index) => ({
+                color: pixel,
+                number: index + 1, // Temp number
+                count: 1,
+                brightness: Utils.getGrayscale(pixel.r, pixel.g, pixel.b)
+            }));
+        }
+
+        const initialBox = { pixels: pixels, min: { r: 0, g: 0, b: 0 }, max: { r: 255, g: 255, b: 255 } };
+        this.updateBoxBounds(initialBox);
+        
+        const boxes = [initialBox];
+        while (boxes.length < targetColors) {
+            const boxToSplit = this.findLargestBox(boxes);
+            if (!boxToSplit || boxToSplit.pixels.length <= 1) break;
+            const newBoxes = this.splitBox(boxToSplit);
+            if (newBoxes.length === 2) {
+                boxes.splice(boxes.indexOf(boxToSplit), 1, ...newBoxes);
+            } else {
+                break;
+            }
+        }
+
+        return boxes.map(box => {
+            const avgColor = this.getAverageColor(box.pixels);
+            return {
+                color: avgColor,
+                count: box.pixels.length,
+                brightness: Utils.getGrayscale(avgColor.r, avgColor.g, avgColor.b)
+                // Number will be assigned after sorting in the main method
+            };
+        });
     }
 }
 

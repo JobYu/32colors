@@ -521,4 +521,137 @@ body {
 
 .legend-container::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* Game Info Styles */
+.game-info {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.game-info h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 1.1em;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 0.95em;
+    color: #555;
+    border-bottom: 1px dashed #eee;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-item span:first-child {
+    font-weight: 500;
+    color: #444;
+}
+
+/* Gallery Section Styles */
+.gallery-section {
+    background-color: #fff;
+    padding: 20px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.gallery-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #2c3e50;
+    font-size: 1.6em;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+}
+
+.gallery-section h3 {
+    margin-top: 20px;
+    margin-bottom: 15px;
+    color: #34495e;
+    font-size: 1.3em;
+}
+
+.gallery-category-section h4 {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    color: #555;
+    font-size: 1.1em;
+    padding-left: 5px;
+    border-left: 3px solid #3498db;
+}
+
+.gallery-images-container {
+    display: flex;
+    /* flex-wrap: wrap; */ /* Removed for horizontal scroll */
+    flex-direction: row; /* Explicitly set, though default for flex */
+    overflow-x: auto;   /* Enable horizontal scrolling */
+    white-space: nowrap;  /* Prevent items from wrapping to new lines */
+    padding-bottom: 10px; /* Add some padding for the scrollbar */
+    gap: 15px; /* Spacing between items */
+    min-height: 160px; /* Adjusted min-height to comfortably fit new gallery item height */
+}
+
+.gallery-item {
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    width: 120px; /* Fixed width for items */
+    height: 140px; /* Adjusted height to be more square-like with width */
+    box-sizing: border-box;
+    display: inline-flex; 
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start; /* Align items to start, allow image to take space, name follows */
+    vertical-align: top; 
+}
+
+.gallery-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.gallery-item img {
+    max-width: 100%; /* Max width is container padding box (120px - 2*10px = 100px) */
+    max-height: 100px; /* Explicit max height for the image itself */
+    height: auto; 
+    border-radius: 4px;
+    margin-bottom: 8px;
+    object-fit: contain; 
+}
+
+.gallery-thumbnail-grayscale {
+    filter: grayscale(100%);
+}
+
+.gallery-item span {
+    font-size: 0.85em;
+    color: #333;
+    display: block;
+    word-wrap: break-word;
+}
+
+.gallery-placeholder {
+    color: #777;
+    font-style: italic;
+    padding: 20px;
+    text-align: center;
+    background-color: #f9f9f9;
+    border-radius: 6px;
 } 

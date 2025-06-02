@@ -127,12 +127,16 @@ const Utils = {
      */
     isValidImageUrl(url) {
         const imageExtensions = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i;
-        try {
-            const urlObj = new URL(url);
-            return imageExtensions.test(urlObj.pathname) || url.includes('data:image/');
-        } catch {
-            return false;
+        if (typeof url !== 'string') return false;
+
+        // Handle data URLs
+        if (url.startsWith('data:image/')) {
+            return true;
         }
+
+        // For relative paths (like local assets) or full URLs, just check extension.
+        // The Image object itself will fail to load if the path is truly invalid.
+        return imageExtensions.test(url);
     },
 
     /**
@@ -222,80 +226,98 @@ const Utils = {
     },
 
     /**
-     * 深拷贝对象
-     * @param {any} obj - 要拷贝的对象
-     * @returns {any} 拷贝后的对象
+     * Capitalizes the first letter of a string.
+     * @param {string} string - The input string.
+     * @returns {string} The string with the first letter capitalized.
      */
-    deepClone(obj) {
-        if (obj === null || typeof obj !== 'object') return obj;
-        if (obj instanceof Date) return new Date(obj.getTime());
-        if (obj instanceof Array) return obj.map(item => this.deepClone(item));
-        if (typeof obj === 'object') {
-            const clonedObj = {};
-            for (const key in obj) {
-                if (obj.hasOwnProperty(key)) {
-                    clonedObj[key] = this.deepClone(obj[key]);
-                }
+    capitalizeFirstLetter(string) {
+        if (!string) return '';
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    },
+
+    /**
+     * localStorage wrapper for easy getting/setting of JSON data.
+     */
+    storage: {
+        get(key, defaultValue = null) {
+            const item = localStorage.getItem(key);
+            if (item === null) return defaultValue;
+            try {
+                return JSON.parse(item);
+            } catch (e) {
+                console.error(`Error parsing localStorage item "${key}":`, e);
+                return defaultValue;
             }
-            return clonedObj;
+        },
+        set(key, value) {
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+            } catch (e) {
+                console.error(`Error setting localStorage item "${key}":`, e);
+                // Potentially handle quota exceeded error
+                Utils.showNotification('无法保存到本地存储，可能已满。', 'error');
+            }
+        },
+        remove(key) {
+            localStorage.removeItem(key);
         }
     },
 
     /**
-     * 本地存储操作
+     * Simple deep clone function for objects and arrays.
+     * @param {*} obj - The object or array to clone.
+     * @returns {*} The deep cloned object or array.
      */
-    storage: {
-        /**
-         * 保存数据到本地存储
-         * @param {string} key - 键名
-         * @param {any} value - 值
-         */
-        set(key, value) {
-            try {
-                localStorage.setItem(key, JSON.stringify(value));
-            } catch (error) {
-                console.warn('Failed to save to localStorage:', error);
-            }
-        },
+    deepClone(obj) {
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
 
-        /**
-         * 从本地存储获取数据
-         * @param {string} key - 键名
-         * @param {any} defaultValue - 默认值
-         * @returns {any} 存储的值或默认值
-         */
-        get(key, defaultValue = null) {
-            try {
-                const item = localStorage.getItem(key);
-                return item ? JSON.parse(item) : defaultValue;
-            } catch (error) {
-                console.warn('Failed to read from localStorage:', error);
-                return defaultValue;
-            }
-        },
+        if (Array.isArray(obj)) {
+            return obj.map(item => Utils.deepClone(item));
+        }
 
-        /**
-         * 删除本地存储中的数据
-         * @param {string} key - 键名
-         */
-        remove(key) {
-            try {
-                localStorage.removeItem(key);
-            } catch (error) {
-                console.warn('Failed to remove from localStorage:', error);
-            }
-        },
-
-        /**
-         * 清空本地存储
-         */
-        clear() {
-            try {
-                localStorage.clear();
-            } catch (error) {
-                console.warn('Failed to clear localStorage:', error);
+        const cloned = {};
+        for (const key in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                cloned[key] = Utils.deepClone(obj[key]);
             }
         }
+        return cloned;
+    },
+
+    /**
+     * Upscales an existing image data URL using nearest-neighbor scaling.
+     * @param {string} imageDataUrl - The data URL of the image to upscale.
+     * @param {number} targetWidth - The desired target width.
+     * @param {number} targetHeight - The desired target height.
+     * @returns {Promise<string>} A promise that resolves with the data URL of the upscaled image.
+     */
+    async upscaleImageDataUrl(imageDataUrl, targetWidth, targetHeight) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = targetWidth;
+                tempCanvas.height = targetHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                // Ensure nearest-neighbor scaling
+                tempCtx.imageSmoothingEnabled = false;
+                // For Firefox and older browsers, these might be needed for crisper edges
+                tempCtx.mozImageSmoothingEnabled = false;
+                tempCtx.webkitImageSmoothingEnabled = false;
+                tempCtx.msImageSmoothingEnabled = false;
+
+                tempCtx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                resolve(tempCanvas.toDataURL());
+            };
+            img.onerror = (err) => {
+                console.error('Failed to load image for upscaling:', err);
+                reject('Failed to load image for upscaling');
+            };
+            img.src = imageDataUrl;
+        });
     }
 };
 

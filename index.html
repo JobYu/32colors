@@ -15,83 +15,107 @@
             <p>将您的图片转换为像素级数字填色游戏</p>
         </header>
 
-        <!-- 图片输入区域 -->
-        <section class="input-section">
-            <div class="input-group">
-                <div class="file-upload">
-                    <label for="imageLoader" class="upload-btn">
-                        📁 选择图片文件
-                    </label>
-                    <input type="file" id="imageLoader" accept="image/*" style="display: none;">
-                    <span class="file-name" id="fileName">未选择文件</span>
+        <!-- 首页内容 -->
+        <div id="homePage">
+            <!-- 图片输入区域 -->
+            <section class="input-section">
+                <div class="input-group">
+                    <div class="file-upload">
+                        <label for="imageLoader" class="upload-btn">
+                            📁 选择图片文件
+                        </label>
+                        <input type="file" id="imageLoader" accept="image/*" style="display: none;">
+                        <span class="file-name" id="fileName">未选择文件</span>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- 主游戏区域 -->
-        <main class="game-area">
-            <!-- 左侧游戏画布 -->
-            <div class="canvas-container">
-                <div class="canvas-wrapper">
-                    <canvas id="gameCanvas"></canvas>
-                    <div class="loading-overlay" id="loadingOverlay">
-                        <div class="spinner"></div>
-                        <p>正在处理图片...</p>
-                    </div>
+            <!-- 内置图库区域 -->
+            <section class="gallery-section" id="builtInGalleryContainer">
+                <h2>🖼️ 内置图库</h2>
+                <div id="folderCategoriesContainer">
+                    <!-- Folder categories will be rendered here by js/main.js -->
                 </div>
-                
-                <!-- 画布控制按钮 -->
-                <div class="canvas-controls">
-                    <button id="zoomInBtn" title="放大">🔍+</button>
-                    <button id="zoomOutBtn" title="缩小">🔍-</button>
+                <div id="sizeCategoriesContainer">
+                    <!-- Size categories will be rendered here by js/main.js -->
                 </div>
-                
-                <!-- 进度条 -->
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                    <span class="progress-text" id="progressText">0%</span>
-                </div>
-            </div>
+            </section>
 
-            <!-- 右侧颜色图例和控制面板 -->
-            <aside class="sidebar">
-                <div class="color-legend">
-                    <h3>🎨 颜色图例</h3>
-                    <div class="legend-container" id="legendContainer">
-                        <p class="legend-placeholder">生成游戏后显示颜色对应关系</p>
+            <!-- 用户画廊区域 -->
+            <section class="gallery-section" id="userGalleryContainer">
+                <h2>🌟 我的画廊</h2>
+                <p class="gallery-placeholder">您完成的作品将在这里展示。</p>
+            </section>
+        </div> <!-- End of homePage -->
+
+        <!-- 游戏页面内容 (初始隐藏) -->
+        <div id="gamePage" style="display: none;">
+            <main class="game-area">
+                <!-- 左侧游戏画布 -->
+                <div class="canvas-container">
+                    <div class="canvas-wrapper">
+                        <canvas id="gameCanvas"></canvas>
+                        <div class="loading-overlay" id="loadingOverlay">
+                            <div class="spinner"></div>
+                            <p>正在处理图片...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 画布控制按钮 -->
+                    <div class="canvas-controls">
+                        <button id="zoomInBtn" title="放大">🔍+</button>
+                        <button id="zoomOutBtn" title="缩小">🔍-</button>
+                    </div>
+                    
+                    <!-- 进度条 -->
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <span class="progress-text" id="progressText">0%</span>
                     </div>
                 </div>
-                
-                <div class="game-controls">
-                    <h3>🎮 游戏控制</h3>
-                    <button id="resetGameBtn" class="control-btn">🔄 重新开始</button>
-                    <button id="autoFillBtn" class="control-btn">🤖 自动填充</button>
-                    <button id="saveProgressBtn" class="control-btn">💾 保存进度</button>
-                </div>
-                
-                <div class="game-info">
-                    <h3>📊 游戏信息</h3>
-                    <div class="info-item">
-                        <span>总区域:</span>
-                        <span id="totalAreas">0</span>
+
+                <!-- 右侧颜色图例和控制面板 -->
+                <aside class="sidebar">
+                    <div class="color-legend">
+                        <h3>🎨 颜色图例</h3>
+                        <div class="legend-container" id="legendContainer">
+                            <p class="legend-placeholder">生成游戏后显示颜色对应关系</p>
+                        </div>
                     </div>
-                    <div class="info-item">
-                        <span>已完成:</span>
-                        <span id="completedAreas">0</span>
+                    
+                    <div class="game-controls">
+                        <h3>🎮 游戏控制</h3>
+                        <button id="resetGameBtn" class="control-btn">🔄 重新开始</button>
+                        <button id="autoFillBtn" class="control-btn">🤖 自动填充</button>
+                        <button id="saveProgressBtn" class="control-btn">💾 保存进度</button>
+                        <!-- Add a button to go back to home/gallery -->
+                        <button id="backToHomeBtn" class="control-btn secondary-action">🖼️ 返回图库</button>
                     </div>
-                    <div class="info-item">
-                        <span>剩余:</span>
-                        <span id="remainingAreas">0</span>
+                    
+                    <div class="game-info">
+                        <h3>📊 游戏信息</h3>
+                        <div class="info-item">
+                            <span>总区域:</span>
+                            <span id="totalAreas">0</span>
+                        </div>
+                        <div class="info-item">
+                            <span>已完成:</span>
+                            <span id="completedAreas">0</span>
+                        </div>
+                        <div class="info-item">
+                            <span>剩余:</span>
+                            <span id="remainingAreas">0</span>
+                        </div>
+                        <div class="info-item">
+                            <span>用时:</span>
+                            <span id="gameTime">00:00</span>
+                        </div>
                     </div>
-                    <div class="info-item">
-                        <span>用时:</span>
-                        <span id="gameTime">00:00</span>
-                    </div>
-                </div>
-            </aside>
-        </main>
+                </aside>
+            </main>
+        </div> <!-- End of gamePage -->
 
         <!-- 成功完成模态框 -->
         <div class="modal" id="successModal">
@@ -108,7 +132,7 @@
 
         <!-- 页脚 -->
         <footer class="footer">
-            <p>&copy; 2024 Color by Numbers. 享受数字填色的乐趣！</p>
+            <p>&copy; 2025 Color by Numbers. 享受数字填色的乐趣！</p>
         </footer>
     </div>
 
@@ -116,6 +140,7 @@
     <script src="js/utils.js"></script>
     <script src="js/colorQuantizer.js"></script>
     <script src="js/imageProcessor.js"></script>
+    <script src="js/galleryManager.js"></script>
     <script src="js/canvasRenderer.js"></script>
     <script src="js/gameEngine.js"></script>
     <script src="js/main.js"></script>

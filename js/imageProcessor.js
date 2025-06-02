@@ -7,7 +7,7 @@ class ImageProcessor {
     constructor() {
         this.maxImageSize = 800; // 最大处理尺寸
         this.canvas = document.createElement('canvas');
-        this.ctx = this.canvas.getContext('2d');
+        this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
     }
 
     /**
@@ -127,10 +127,14 @@ class ImageProcessor {
      */
     async processImage(img, options = {}) {
         const {
-            colorCount = 24,
-            gridSize = 'auto',
+            colorCount = 16, // Default to 16 as per previous requirement
+            gridSize = 'pixel',
             algorithm = 'kmeans'
         } = options;
+
+        console.log(`[ImageProcessor Debug] processImage called with colorCount: ${colorCount}, algorithm: ${algorithm}`);
+
+        const transparentThreshold = 128; // Alpha values <= this are considered transparent (lowered from 128)
 
         try {
             // 调整图片尺寸
@@ -144,73 +148,232 @@ class ImageProcessor {
 
             // 获取图像数据
             const imageData = this.ctx.getImageData(0, 0, dimensions.width, dimensions.height);
+            const data = imageData.data;
+            
+            // Count unique colors (ignoring alpha for the color key, but respecting transparentThreshold for inclusion)
+            const uniqueColors = new Set();
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i + 3] > transparentThreshold) { // Check alpha channel (use the same threshold as opaquePixels)
+                    uniqueColors.add(`${data[i]},${data[i+1]},${data[i+2]}`);
+                }
+            }
 
-            // 颜色量化
-            let quantizeResult;
-            if (algorithm === 'median-cut') {
-                quantizeResult = colorQuantizer.medianCutQuantize(imageData, colorCount);
-            } else if (algorithm === 'simple') {
-                quantizeResult = colorQuantizer.simpleQuantize(imageData, 8);
+            console.log(`[ImageProcessor Debug] Image has ${uniqueColors.size} unique colors (threshold: ${transparentThreshold})`);
+            if (uniqueColors.size <= 10) { // Only log if reasonable number
+                console.log('[ImageProcessor Debug] Unique colors:', Array.from(uniqueColors).map(colorStr => `rgb(${colorStr})`));
+            }
+
+            if (uniqueColors.size > 128) {
+                throw new Error('Image contains too many colors (max 128 allowed).');
+            }
+            
+            // 收集非透明像素用于颜色量化
+            const opaquePixels = [];
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i + 3] > transparentThreshold) { // Check alpha channel
+                    opaquePixels.push({ r: data[i], g: data[i + 1], b: data[i + 2] });
+                }
+            }
+
+            console.log(`[ImageProcessor Debug] Collected ${opaquePixels.length} opaque pixels for quantization`);
+
+            if (opaquePixels.length === 0) {
+                // Handle fully transparent image or image with all pixels below threshold
+                // Create a gameGrid of all transparent cells
+                const gameGrid = this.generateGameGrid(imageData, [], gridSize, transparentThreshold, true);
+                 return {
+                    originalImage: img,
+                    processedImageData: imageData, // Original image data
+                    palette: [], // No palette for fully transparent image
+                    gameGrid: gameGrid,
+                    dimensions: dimensions,
+                    isFullyTransparent: true
+                };
+            }
+
+            // For pixel art, directly extract unique colors if count is manageable
+            let palette;
+            let quantizedImageData;
+            
+            if (uniqueColors.size <= colorCount) {
+                console.log(`[ImageProcessor Debug] Using direct color extraction (${uniqueColors.size} unique colors <= ${colorCount} target)`);
+                // Create palette directly from unique colors without any quantization
+                palette = this.createDirectPalette(uniqueColors, opaquePixels, transparentThreshold);
+                // No quantization needed - original image data already has the right colors
+                quantizedImageData = imageData;
             } else {
-                quantizeResult = colorQuantizer.kMeansQuantize(imageData, colorCount);
+                console.log(`[ImageProcessor Debug] Using quantization algorithm (${uniqueColors.size} unique colors > ${colorCount} target)`);
+                // Only use quantization when there are too many colors
+                palette = colorQuantizer.generatePaletteFromPixels(opaquePixels, colorCount, algorithm);
+                quantizedImageData = this.mapImageDataToPalette(imageData, palette, transparentThreshold);
             }
 
             // 生成游戏网格
             const gameGrid = this.generateGameGrid(
-                quantizeResult.quantizedData,
-                quantizeResult.palette,
-                gridSize
+                quantizedImageData, // This is imageData with opaque pixels mapped to palette
+                palette,
+                gridSize,
+                transparentThreshold
             );
 
             return {
                 originalImage: img,
-                processedImageData: quantizeResult.quantizedData,
-                palette: quantizeResult.palette,
+                processedImageData: quantizedImageData,
+                palette: palette,
                 gameGrid: gameGrid,
                 dimensions: dimensions
             };
 
         } catch (error) {
+            console.error('Image processing error:', error);
             throw new Error(`图片处理失败: ${error.message}`);
         }
     }
 
     /**
+     * Creates a palette directly from unique colors without quantization
+     * @param {Set} uniqueColors - Set of unique color strings "r,g,b"
+     * @param {Array} opaquePixels - Array of opaque pixel objects {r, g, b}
+     * @param {number} transparentThreshold - Transparency threshold
+     * @returns {Array} Direct palette
+     */
+    createDirectPalette(uniqueColors, opaquePixels, transparentThreshold) {
+        console.log(`[ImageProcessor Debug] Creating direct palette from ${uniqueColors.size} unique colors`);
+        
+        // Count frequency of each color
+        const colorCounts = new Map();
+        for (const pixel of opaquePixels) {
+            const colorKey = `${pixel.r},${pixel.g},${pixel.b}`;
+            colorCounts.set(colorKey, (colorCounts.get(colorKey) || 0) + 1);
+        }
+        
+        // Create palette entries for each unique color
+        const palette = Array.from(uniqueColors).map((colorStr, index) => {
+            const [r, g, b] = colorStr.split(',').map(Number);
+            const color = { r, g, b };
+            const count = colorCounts.get(colorStr) || 0;
+            const brightness = Utils.getGrayscale(r, g, b);
+            
+            return {
+                color: color,
+                count: count,
+                brightness: brightness,
+                number: index + 1 // Will be reassigned after sorting
+            };
+        });
+        
+        // Sort by brightness (darker colors first)
+        palette.sort((a, b) => a.brightness - b.brightness);
+        
+        // Reassign sequential numbers after sorting
+        palette.forEach((item, index) => {
+            item.number = index + 1;
+        });
+        
+        console.log(`[ImageProcessor Debug] Direct palette created with ${palette.length} colors:`, 
+                   palette.map(p => `rgb(${p.color.r},${p.color.g},${p.color.b}): ${p.count} pixels`));
+        
+        return palette;
+    }
+
+    /**
+     * Maps an ImageData object to a given palette, leaving transparent pixels as they are.
+     * @param {ImageData} originalImageData - The original image data.
+     * @param {Array} palette - The color palette.
+     * @param {number} transparentThreshold - Alpha threshold for transparency.
+     * @returns {ImageData} A new ImageData object with opaque pixels mapped to the palette.
+     */
+    mapImageDataToPalette(originalImageData, palette, transparentThreshold) {
+        const { width, height, data } = originalImageData;
+        const newData = new Uint8ClampedArray(data.length);
+        const tempCtx = document.createElement('canvas').getContext('2d');
+        const newImageData = tempCtx.createImageData(width, height);
+
+        for (let i = 0; i < data.length; i += 4) {
+            const alpha = data[i + 3];
+            if (alpha > transparentThreshold) {
+                const pixelColor = { r: data[i], g: data[i + 1], b: data[i + 2] };
+                const closestPaletteItem = this.findClosestPaletteColor(pixelColor, palette);
+                if (closestPaletteItem && closestPaletteItem.color) {
+                    newData[i] = closestPaletteItem.color.r;
+                    newData[i + 1] = closestPaletteItem.color.g;
+                    newData[i + 2] = closestPaletteItem.color.b;
+                    newData[i + 3] = 255; // Force opaque for colored areas
+                } else {
+                    // Should not happen if palette is derived from these pixels
+                    newData[i] = data[i];
+                    newData[i + 1] = data[i + 1];
+                    newData[i + 2] = data[i + 2];
+                    newData[i + 3] = data[i + 3];
+                }
+            } else {
+                // Transparent pixel, copy as is
+                newData[i] = data[i];         // R
+                newData[i + 1] = data[i + 1]; // G
+                newData[i + 2] = data[i + 2]; // B
+                newData[i + 3] = alpha;       // A
+            }
+        }
+        newImageData.data.set(newData);
+        return newImageData;
+    }
+
+    /**
      * 生成游戏网格（像素级别）
-     * @param {ImageData} imageData - 处理后的图像数据
+     * @param {ImageData} imageData - 处理后的图像数据 (opaque pixels mapped to palette, transparent pixels as is)
      * @param {Array} palette - 调色板
      * @param {string|number} gridSize - 网格大小（对于像素级别游戏忽略此参数）
+     * @param {number} transparentThreshold - Alpha threshold for transparency
+     * @param {boolean} forceAllTransparent - If true, mark all cells as transparent (for fully transparent images)
      * @returns {Array} 游戏网格数据
      */
-    generateGameGrid(imageData, palette, gridSize) {
+    generateGameGrid(imageData, palette, gridSize, transparentThreshold = 128, forceAllTransparent = false) {
         const { width, height } = imageData;
         const data = imageData.data;
 
         console.log(`生成像素级网格: ${width}x${height}, 调色板颜色数量: ${palette.length}`);
 
-        // 每个像素都是一个游戏格子
         const grid = [];
-        let validPixels = 0;
-        let totalPixels = 0;
+        let validPixels = 0; // Non-transparent, colorable pixels
+        let transparentPixels = 0;
 
         for (let row = 0; row < height; row++) {
             const gridRow = [];
             for (let col = 0; col < width; col++) {
                 const pixelIndex = (row * width + col) * 4;
-                totalPixels++;
                 
-                // 检查像素是否透明
-                if (data[pixelIndex + 3] > 128) { // 非透明像素
+                if (forceAllTransparent || data[pixelIndex + 3] <= transparentThreshold) {
+                    // Transparent pixel
+                    gridRow.push({
+                        row: row,
+                        col: col,
+                        x: col,
+                        y: row,
+                        width: 1,
+                        height: 1,
+                        isTransparent: true,
+                        revealed: true, // Transparent cells are "revealed" by default
+                        number: 0, // Special number for transparent
+                        color: { r: 0, g: 0, b: 0, a: 0 } // Store as fully transparent black
+                    });
+                    transparentPixels++;
+                } else {
+                    // Opaque pixel, should be mapped to a palette color
                     const pixelColor = {
                         r: data[pixelIndex],
                         g: data[pixelIndex + 1],
                         b: data[pixelIndex + 2]
                     };
 
-                    // 找到最接近的调色板颜色
-                    const closestPaletteItem = this.findClosestPaletteColor(pixelColor, palette);
+                    // Find the *exact* palette color entry (since imageData is already mapped)
+                    // This assumes that the r,g,b values in `data` are now one of the palette colors.
+                    const paletteItem = palette.find(pItem => 
+                        pItem.color.r === pixelColor.r &&
+                        pItem.color.g === pixelColor.g &&
+                        pItem.color.b === pixelColor.b
+                    );
                     
-                    if (closestPaletteItem && closestPaletteItem.color) {
+                    if (paletteItem && paletteItem.color) {
                         gridRow.push({
                             row: row,
                             col: col,
@@ -218,25 +381,38 @@ class ImageProcessor {
                             y: row,
                             width: 1,
                             height: 1,
-                            color: closestPaletteItem.color,
-                            number: closestPaletteItem.number,
+                            color: { ...paletteItem.color }, // Store a copy of the palette color
+                            number: paletteItem.number,
                             revealed: false,
-                            pixelCount: 1
+                            isTransparent: false,
+                            pixelCount: 1 
                         });
                         validPixels++;
                     } else {
-                        console.warn('找不到匹配的调色板颜色:', pixelColor);
-                        gridRow.push(null);
+                        // This case should ideally not be reached if mapImageDataToPalette worked correctly
+                        // and all opaque pixels were mapped.
+                        // As a fallback, treat as transparent or a default non-interactive color.
+                        console.warn('Pixel color not found in palette after mapping (should not happen):', pixelColor, 'Palette:', palette);
+                        gridRow.push({
+                            row: row,
+                            col: col,
+                            x: col,
+                            y: row,
+                            width: 1,
+                            height: 1,
+                            isTransparent: true, // Fallback to transparent
+                            revealed: true,
+                            number: 0,
+                            color: { r: 0, g: 0, b: 0, a: 0 }
+                        });
+                        transparentPixels++;
                     }
-                } else {
-                    // 透明像素
-                    gridRow.push(null);
                 }
             }
             grid.push(gridRow);
         }
 
-        console.log(`网格生成完成: 总像素 ${totalPixels}, 有效像素 ${validPixels}`);
+        console.log(`网格生成完成: 总像素 ${width * height}, 有效(不透明)像素 ${validPixels}, 透明像素 ${transparentPixels}`);
         return grid;
     }
 

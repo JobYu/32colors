@@ -56,25 +56,33 @@ class CanvasRenderer {
         if (!this.gameData) return;
         
         const { dimensions } = this.gameData;
-        const canvasRect = this.canvas.getBoundingClientRect();
+        // const canvasRect = this.canvas.getBoundingClientRect(); // Not strictly needed if we default to 5x first
         
-        // 设置默认500%缩放
-        const defaultScale = 5; // 500%
+        // Set default 1000% (10x) zoom as the target
+        let scale = 10; 
         
-        // 计算适合画布的最大缩放比例
-        const maxScaleX = (canvasRect.width - 40) / dimensions.width;
-        const maxScaleY = (canvasRect.height - 40) / dimensions.height;
-        const maxFitScale = Math.min(maxScaleX, maxScaleY);
+        // Optional: If 10x scale is too large to fit the image within the canvas view, 
+        // then reduce scale to fit. This prevents extremely large images from being initially unusable.
+        // Consider if this is desired, or if 10x should always be the rule.
+        const maxFitScaleX = (this.canvas.width - 40) / dimensions.width; // 20px padding on each side
+        const maxFitScaleY = (this.canvas.height - 40) / dimensions.height; // 20px padding on each side
+        const maxFitScale = Math.min(maxFitScaleX, maxFitScaleY);
+
+        if (scale > maxFitScale && maxFitScale > 0) { // only adjust if 10x is too big AND maxFitScale is valid
+            // scale = maxFitScale; 
+            // For now, let's always prioritize 10x. If it's too big, user can zoom out.
+            // If you want it to always fit if 10x is too big, uncomment the line above.
+        }
         
-        // 选择合适的缩放级别：默认500%，但不超过能完全显示的最大缩放
-        let scale = Math.min(defaultScale, maxFitScale);
-        scale = Math.max(1, scale); // 最小100%
-        
+        // Ensure scale is not less than a minimum reasonable zoom, e.g., 1x, or 0.5x if images can be very large.
+        scale = Math.max(this.settings.minZoom, scale); // settings.minZoom is 1 by default
+                
         this.transform = {
             scale: scale,
             translateX: (this.canvas.width - dimensions.width * scale) / 2,
             translateY: (this.canvas.height - dimensions.height * scale) / 2
         };
+        // No need to call this.render() here as setGameData, which calls resetView, will call render.
     }
 
     /**
@@ -226,65 +234,62 @@ class CanvasRenderer {
      * @param {object} cell - 网格单元数据
      */
     renderPixelCell(cell) {
-        if (!cell || !cell.color) {
+        if (!cell) return;
+
+        // If cell is marked as transparent, skip rendering it (it will show the canvas background or layers below)
+        if (cell.isTransparent) {
+            // We could explicitly clearRect here if needed, but often just skipping is enough
+            // this.ctx.clearRect(cell.x, cell.y, cell.width, cell.height);
             return;
         }
         
+        if (!cell.color) { // Check for color object specifically
+             console.warn('Cell has no color object:', cell);
+            return;
+        }
+
         const { x, y, width, height, color, number, revealed } = cell;
         
-        // 确保颜色数据完整
         if (typeof color.r === 'undefined' || typeof color.g === 'undefined' || typeof color.b === 'undefined') {
             console.warn('无效的颜色数据:', color, 'in cell:', cell);
             return;
         }
         
-        // 设置像素不抗锯齿，确保清晰的像素边缘
         this.ctx.imageSmoothingEnabled = false;
-        
-        // 根据缩放级别决定渲染模式
-        const isHighZoom = this.transform.scale >= this.settings.gridModeThreshold; // 使用设置中的阈值
-        
-        if (!isHighZoom) {
-            // 低缩放：正常显示像素颜色
-            if (revealed) {
-                // 已填充：显示原始颜色
-                this.ctx.fillStyle = Utils.rgbToHex(color.r, color.g, color.b);
-            } else {
-                // 未填充：显示带有颜色提示的灰度
-                const gray = Utils.getGrayscale(color.r, color.g, color.b);
-                const enhancedGray = Math.max(80, Math.min(180, gray));
-                this.ctx.fillStyle = `rgb(${enhancedGray}, ${enhancedGray}, ${enhancedGray})`;
-            }
+
+        if (revealed) {
+            // Use actual cell color, including its alpha if present (though palette colors are usually opaque)
+            const alpha = (typeof color.a === 'number') ? color.a / 255 : 1;
+            this.ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
             this.ctx.fillRect(x, y, width, height);
         } else {
-            // 高缩放：只显示已填充的像素，未填充保持透明/白色
-            if (revealed) {
-                this.ctx.fillStyle = Utils.rgbToHex(color.r, color.g, color.b);
-                this.ctx.fillRect(x, y, width, height);
-            }
-            // 未填充的像素不绘制背景，保持白色背景
-        }
-        
-        // 高亮显示
-        if (this.interaction.highlightedNumber === number && !revealed) {
-            this.ctx.fillStyle = 'rgba(33, 150, 243, 0.4)';
+            // Unrevealed, non-transparent cells
+            this.ctx.fillStyle = 'rgba(220, 220, 220, 0.7)'; // Default placeholder for non-revealed
             this.ctx.fillRect(x, y, width, height);
+            
+            // Draw numbers only if enabled and scale is sufficient
+            if (this.settings.showNumbers && this.shouldShowNumbers()) {
+                if (this.isGridMode()) {
+                    this.renderPixelNumber(cell);
+                } else {
+                    // For pixel mode, numbers might be too small or clutter display.
+                    // Consider a different rendering or condition for pixel numbers if desired.
+                    // this.renderPixelNumber(cell); // Or this.renderSimplePixelNumber(cell)
+                }
+            }
         }
         
-        // 绘制网格线（在高缩放时必须显示）
-        if (this.settings.showGrid && (isHighZoom || (this.transform.scale >= 8 && this.transform.scale <= 100))) {
-            this.ctx.strokeStyle = isHighZoom ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.2)';
-            this.ctx.lineWidth = isHighZoom ? 2 / this.transform.scale : 1 / this.transform.scale;
+        // Draw grid lines if in grid mode or high zoom in pixel mode
+        if (this.settings.showGrid && (this.isGridMode() || this.transform.scale >= 5)) {
+            this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+            this.ctx.lineWidth = 1 / this.transform.scale; // Keep grid lines thin
             this.ctx.strokeRect(x, y, width, height);
         }
         
-        // 绘制数字（在高缩放时简化显示）
-        if (this.settings.showNumbers && !revealed && this.shouldShowNumbers()) {
-            if (isHighZoom) {
-                this.renderSimplePixelNumber(cell);
-            } else {
-                this.renderPixelNumber(cell);
-            }
+        // Highlight selected number
+        if (this.interaction.highlightedNumber !== null && this.interaction.highlightedNumber === number && !revealed) {
+            this.ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+            this.ctx.fillRect(x, y, width, height);
         }
     }
 
@@ -615,96 +620,103 @@ class CanvasRenderer {
      * @param {object} transform - 变换状态
      */
     setTransform(transform) {
-        this.transform = { ...transform };
+        this.transform = transform;
         this.render();
     }
 
     /**
-     * 导出当前画布为图片
-     * @param {number} scale - 导出缩放倍数（默认1为当前尺寸，10为1000%放大）
-     * @returns {string} 图片的Data URL
+     * 导出当前游戏画面为图片
+     * @param {number} scale - 导出图片的缩放比例
+     * @returns {string} Data URL of the exported image
      */
     exportImage(scale = 1) {
         if (!this.gameData) {
-            return this.canvas.toDataURL();
+            console.error('No game data to export.');
+            return null;
         }
 
         const { dimensions } = this.gameData;
-        
-        // 创建高分辨率画布
         const exportCanvas = document.createElement('canvas');
-        const exportCtx = exportCanvas.getContext('2d');
-        
-        // 设置导出画布尺寸
         exportCanvas.width = dimensions.width * scale;
         exportCanvas.height = dimensions.height * scale;
         
-        // 关闭抗锯齿以保持像素画效果
-        exportCtx.imageSmoothingEnabled = false;
-        
-        // 绘制白色背景
-        exportCtx.fillStyle = '#ffffff';
-        exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-        
-        // 缩放画布以实现高分辨率渲染
+        const exportCtx = exportCanvas.getContext('2d');
+
+        // CRITICAL: Ensure canvas is cleared with transparency, not default opaque white
+        exportCtx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+        // Apply scaling
         exportCtx.scale(scale, scale);
-        
-        // 渲染完整的游戏网格（不受视窗限制）
-        this.renderFullGameGrid(exportCtx);
-        
+
+        // Render the game grid onto the export canvas
+        // Make sure to use a version of render that respects transparency
+        this.renderFullGameGrid(exportCtx, true); // Pass a flag to indicate export context
+
         return exportCanvas.toDataURL('image/png');
     }
 
     /**
-     * 渲染完整的游戏网格（用于导出）
-     * @param {CanvasRenderingContext2D} ctx - 画布上下文
+     * 渲染完整的游戏网格到指定的上下文（用于导出）
+     * @param {CanvasRenderingContext2D} ctx - 目标画布的2D上下文
+     * @param {boolean} isExporting - Flag to indicate if this is for export (to handle transparency)
      */
-    renderFullGameGrid(ctx) {
+    renderFullGameGrid(ctx, isExporting = false) {
         const { gameGrid, dimensions } = this.gameData;
-        
-        // 渲染所有像素单元格（不受视窗限制）
+
+        // If not exporting, we might draw a white background first (as currently done in renderGameGrid)
+        // For exporting with transparency, we skip this.
+        if (!isExporting) {
+            ctx.fillStyle = '#ffffff'; // Default background if not exporting transparently
+            ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+        }
+
         for (let row = 0; row < gameGrid.length; row++) {
-            for (let col = 0; col < gameGrid[row].length; col++) {
-                const cell = gameGrid[row][col];
-                if (cell) {
-                    this.renderPixelCellForExport(ctx, cell);
+            for (let col = 0; col < gameGrid[0].length; col++) {
+                if (gameGrid[row] && gameGrid[row][col]) {
+                    const cell = gameGrid[row][col];
+                    this.renderPixelCellForExport(ctx, cell, isExporting);
                 }
             }
         }
     }
 
     /**
-     * 为导出渲染像素单元格
-     * @param {CanvasRenderingContext2D} ctx - 画布上下文
-     * @param {object} cell - 单元格数据
+     * 渲染单个像素单元到指定的上下文（用于导出）
+     * @param {CanvasRenderingContext2D} ctx - 目标画布的2D上下文
+     * @param {object} cell - 网格单元数据
+     * @param {boolean} isExporting - Flag to indicate if this is for export (always true here)
      */
-    renderPixelCellForExport(ctx, cell) {
-        const x = cell.col;
-        const y = cell.row;
-        
-        // 绘制单元格背景（已填充显示颜色，未填充显示淡灰色）
-        if (cell.revealed) {
-            // 已填充：显示实际颜色
-            ctx.fillStyle = Utils.rgbToHex(cell.color.r, cell.color.g, cell.color.b);
-        } else {
-            // 未填充：显示淡灰色
-            ctx.fillStyle = '#f0f0f0';
+    renderPixelCellForExport(ctx, cell, isExporting = true) { // isExporting is effectively always true here
+        if (!cell) return;
+
+        if (cell.isTransparent) {
+            // For export, explicitly make it transparent by clearing or doing nothing if canvas is already clear
+            // If the main export canvas was cleared with transparent, doing nothing here is fine.
+            // ctx.clearRect(cell.x, cell.y, cell.width, cell.height); 
+            return;
         }
+
+        if (!cell.color || typeof cell.color.r === 'undefined') {
+            console.warn('Invalid cell for export:', cell);
+            return;
+        }      
+
+        const { x, y, width, height, color, revealed } = cell;
         
-        ctx.fillRect(x, y, 1, 1);
-        
-        // 绘制细网格线（在高分辨率下清晰可见）
-        ctx.strokeStyle = '#d0d0d0';
-        ctx.lineWidth = 0.02; // 细线，适合高分辨率
-        ctx.strokeRect(x, y, 1, 1);
-        
-        // 在未填充的单元格中绘制数字（如果足够大）
-        if (!cell.revealed) {
-            ctx.fillStyle = '#666666';
-            ctx.font = '0.5px Arial'; // 相对于单元格的字体大小
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(cell.number.toString(), x + 0.5, y + 0.5);
+        ctx.imageSmoothingEnabled = false;
+
+        if (revealed) {
+            // Use the cell's stored color. If it has an alpha channel, respect it.
+            // Palette colors from quantizer are usually opaque (a=255 or undefined).
+            // If original image had alpha, it's now in cell.color.a from ImageProcessor
+            const alpha = (typeof color.a === 'number') ? color.a / 255 : 1;
+            ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+            ctx.fillRect(x, y, width, height);
+        } else {
+            // For unrevealed cells during export: current decision is to make them transparent.
+            // If they needed a placeholder color, it would be drawn here.
+            // For now, unrevealed non-transparent cells in an export will be transparent.
+            // ctx.clearRect(x, y, width, height); // Or simply do nothing if canvas is already clear.
         }
     }
 
@@ -715,6 +727,20 @@ class CanvasRenderer {
         this.gameData = null;
         this.interaction.highlightedNumber = null;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    /**
+     * Clears game data, resets transform and interaction state, and renders an empty state.
+     */
+    clearAndReset() {
+        this.gameData = null;
+        this.interaction.highlightedNumber = null;
+        this.transform = {
+            scale: 1,
+            translateX: 0,
+            translateY: 0
+        };
+        this.renderEmptyState(); // This already clears the canvas
     }
 }
 

@@ -1,0 +1,25 @@
+{
+  "categories": [
+    {
+      "name": "sample-images",
+      "images": [
+        { "name": "Emoji 1", "path": "assets/sample-images/emoji1.png" },
+        { "name": "Emoji 2", "path": "assets/sample-images/emoji2.png" },
+        { "name": "Emoji 3", "path": "assets/sample-images/emoji3.png" },
+        { "name": "Emoji 4", "path": "assets/sample-images/emoji4.png" },
+        { "name": "Emoji 5", "path": "assets/sample-images/emoji5.png" },
+        { "name": "Emoji 6", "path": "assets/sample-images/emoji6.png" },
+        { "name": "Emoji 7", "path": "assets/sample-images/emoji7.png" },
+        { "name": "Emoji 8", "path": "assets/sample-images/emoji8.png" },
+        { "name": "Emoji 9", "path": "assets/sample-images/emoji9.png" },
+        { "name": "Emoji 10", "path": "assets/sample-images/emoji10.png" },
+        { "name": "Emoji 11", "path": "assets/sample-images/emoji11.png" },
+        { "name": "Emoji 12", "path": "assets/sample-images/emoji12.png" },
+        { "name": "Emoji 13", "path": "assets/sample-images/emoji13.png" },
+        { "name": "Emoji 14", "path": "assets/sample-images/emoji14.png" },
+        { "name": "Emoji 15", "path": "assets/sample-images/emoji15.png" },
+        { "name": "Emoji 16", "path": "assets/sample-images/emoji16.png" }
+      ]
+    }
+  ]
+} 
