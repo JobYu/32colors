@@ -3,28 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>32colors - Pixel art color by number Game</title>
+    
+    <!-- Primary Meta Tags -->
+    <title>32colors by Numbers - Free Online Pixel Art Coloring Game | Digital Paint by Numbers</title>
+    <meta name="title" content="Color by Numbers - Free Online Pixel Art Coloring Game | Digital Paint by Numbers">
+    <meta name="description" content="Create and play pixel-level digital coloring games online! Upload your pixel art or choose from our gallery to generate paint-by-numbers games. Free, no registration required.">
+    <meta name="keywords" content="color by numbers, pixel art, digital coloring, paint by numbers, online coloring game, pixel coloring, art game, creative game, coloring book, digital art">
+    <meta name="author" content="32colors">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="revisit-after" content="7 days">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.32colors.com/">
+    <meta property="og:title" content="Color by Numbers - Free Online Pixel Art Coloring Game">
+    <meta property="og:description" content="Create and play pixel-level digital coloring games online! Upload your pixel art or choose from our gallery to generate paint-by-numbers games. Free, no registration required.">
+    <meta property="og:image" content="https://www.32colors.com/assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="32colors">
+    <meta property="og:locale" content="en_US">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://www.32colors.com/">
+    <meta property="twitter:title" content="Color by Numbers - Free Online Pixel Art Coloring Game">
+    <meta property="twitter:description" content="Create and play pixel-level digital coloring games online! Upload your pixel art or choose from our gallery to generate paint-by-numbers games. Free, no registration required.">
+    <meta property="twitter:image" content="https://www.32colors.com/assets/og-image.png">
+    <meta property="twitter:creator" content="@32colors">
+    
+    <!-- Additional Meta Tags -->
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="msapplication-TileColor" content="#4CAF50">
+    <meta name="msapplication-config" content="/browserconfig.xml">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://www.32colors.com/">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    
+    <!-- Preload Critical Resources -->
+    <link rel="preload" href="css/style.css" as="style">
+    <link rel="preload" href="css/responsive.css" as="style">
+    
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/responsive.css">
+    
+    <!-- SEO and Accessibility Styles -->
+    <style>
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        /* Focus styles for better accessibility */
+        button:focus,
+        input:focus,
+        select:focus {
+            outline: 2px solid #4CAF50;
+            outline-offset: 2px;
+        }
+        
+        /* Skip to main content link */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 6px;
+            background: #4CAF50;
+            color: white;
+            padding: 8px;
+            text-decoration: none;
+            z-index: 100;
+            border-radius: 4px;
+        }
+        
+        .skip-link:focus {
+            top: 6px;
+        }
+    </style>
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Color by Numbers",
+      "alternateName": "32colors",
+      "description": "A free online pixel-level digital coloring game where users can upload pixel art images and convert them into interactive paint-by-numbers games.",
+      "url": "https://www.32colors.com/",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "creator": {
+        "@type": "Organization",
+        "name": "32colors",
+        "url": "https://www.32colors.com/"
+      },
+      "featureList": [
+        "Upload custom pixel art images",
+        "Convert images to paint-by-numbers games",
+        "Built-in image gallery",
+        "Pixel-level precision coloring",
+        "Progress saving",
+        "Image sharing capabilities",
+        "Multiple zoom levels",
+        "Auto-fill tools"
+      ],
+      "screenshot": "https://www.32colors.com/assets/screenshot.png",
+      "softwareVersion": "1.0",
+      "datePublished": "2025-01-06",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "keywords": "color by numbers, pixel art, digital coloring, paint by numbers, online game"
+    }
+    </script>
 </head>
 <body>
+    <!-- Skip to main content for accessibility -->
+    <a href="#homePage" class="skip-link">Skip to main content</a>
+    
     <div class="container">
         <!-- Header -->
-        <header class="header">
-            <h1>32colors - Pixel art color by number Game</h1>
-            <p>Free Online unblocked printable worksheet game</p>
+        <header class="header" role="banner">
+            <h1>32colors by Numbers</h1>
+            <p>Convert pixel art into pixel-level digital coloring games</p>
             
             <!-- Navigation Menu -->
-            <nav class="navigation">
-                <button id="homeNavBtn" class="nav-btn active">🏠 Home</button>
+            <nav class="navigation" role="navigation" aria-label="Main navigation">
+                <button id="homeNavBtn" class="nav-btn active" aria-current="page">🏠 Home</button>
                 <button id="galleryNavBtn" class="nav-btn">🌟 My Gallery</button>
             </nav>
         </header>
 
         <!-- Home Page Content -->
-        <div id="homePage">
+        <main id="homePage" role="main">
             <!-- Built-in Gallery -->
-            <section class="gallery-section" id="builtInGalleryContainer">
+            <section class="gallery-section" id="builtInGalleryContainer" aria-label="Image gallery">
                 
                 
                 <!-- Filter Controls -->
@@ -48,18 +180,19 @@
                 </div>
             </section>
                     <!-- Image Input Area -->
-                    <section class="input-section">
+                    <section class="input-section" aria-label="Upload custom image">
+                        <h2 class="sr-only">Upload Your Pixel Art</h2>
                         <div class="input-group">
                             <div class="file-upload">
                                 <label for="imageLoader" class="upload-btn">
                                     Open Pixel Art Image
                                 </label>
-                                <input type="file" id="imageLoader" accept="image/*" style="display: none;">
+                                <input type="file" id="imageLoader" accept="image/*" style="display: none;" aria-describedby="fileName">
                                 <span class="file-name" id="fileName">Choose a pixel image (PNG/JPG format, max 300×300 pixels, within 128 colors). Uploaded images are saved locally only and not uploaded to servers.</span>
                             </div>
                         </div>
                     </section>
-        </div> <!-- End of homePage -->
+        </main> <!-- End of homePage -->
 
         <!-- My Gallery Page (Standalone) -->
         <div id="myGalleryPage" style="display: none;">
@@ -156,8 +289,20 @@
         </div>
 
         <!-- Footer -->
-        <footer class="footer">
-            <p>&copy; 2025 32colors. Enjoy the fun of digital coloring!</p>
+        <footer class="footer" role="contentinfo">
+            <div class="footer-content">
+                <p>&copy; 2025 Color by Numbers. Enjoy the fun of digital coloring!</p>
+                <nav class="footer-nav" aria-label="Footer navigation">
+                    <p class="footer-description">
+                        Free online pixel art coloring game. Upload your images or choose from our gallery to create engaging paint-by-numbers games. 
+                        Perfect for artists, children, and anyone who loves digital coloring activities.
+                    </p>
+                    <div class="footer-links">
+                        <span>Keywords: </span>
+                        <em>pixel art, digital coloring, paint by numbers, online coloring game, creative games</em>
+                    </div>
+                </nav>
+            </div>
         </footer>
     </div>
 

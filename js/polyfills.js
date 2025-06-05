@@ -181,7 +181,7 @@ try {
     document.addEventListener('DOMContentLoaded', function() {
         var errorDiv = document.createElement('div');
         errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#f8d7da;color:#721c24;padding:15px;z-index:9999;text-align:center;font-family:Arial,sans-serif;';
-        errorDiv.innerHTML = '您的浏览器版本过低，不支持ES6语法。请升级到较新版本的Chrome、Firefox、Safari或Edge浏览器。<br>Your browser is too old and doesn\'t support ES6 syntax. Please upgrade to a newer browser.';
+        errorDiv.innerHTML = 'Your browser version is too old and doesn\'t support ES6 syntax. Please upgrade to a newer browser.';
         document.body.insertBefore(errorDiv, document.body.firstChild);
     });
 }

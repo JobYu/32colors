@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Allow all files
+Allow: /assets/
+Allow: /images/
+
+# Important pages
+Allow: /index.html
+Allow: /
+
+# Sitemap location
+Sitemap: https://www.32colors.com/sitemap.xml
+
+# Crawl delay (optional)
+Crawl-delay: 1 
