@@ -9,7 +9,7 @@ class ColorByNumbersApp {
         this.currentImageManifestPath = null; // Track built-in image path
         this.currentUploadedImageName = null; // Track uploaded image name
         this.isProcessing = false;
-        this.FILE_INPUT_HINT_TEXT = '选择像素图片 (PNG/JPG格式，最大300×300像素，128色以内)';
+        this.FILE_INPUT_HINT_TEXT = 'Select pixel image (PNG/JPG format, max 300×300 pixels, 128 colors or less)';
         
         // 油漆桶工具状态
         this.bucketTool = {
@@ -237,7 +237,7 @@ class ColorByNumbersApp {
 
         // 检测GIF动图
         if (file.type === 'image/gif') {
-            Utils.showNotification('暂不支持GIF动态图片，请选择PNG或JPG格式的像素图片', 'error');
+            Utils.showNotification('GIF dynamic images are not supported, please select PNG or JPG format pixel images', 'error');
             this.elements.fileName.textContent = this.FILE_INPUT_HINT_TEXT;
             this.resetFileInput();
             return;
@@ -251,7 +251,7 @@ class ColorByNumbersApp {
             // 检查图片尺寸
             const imageInfo = imageProcessor.getImageInfo(loadedImage);
             if (imageInfo.width > 300 || imageInfo.height > 300) {
-                Utils.showNotification(`图片尺寸过大 (${imageInfo.width}×${imageInfo.height})，请选择300×300像素以内的图片`, 'error');
+                Utils.showNotification(`Image size too large (${imageInfo.width}×${imageInfo.height}), please select images within 300×300 pixels`, 'error');
                 this.elements.fileName.textContent = this.FILE_INPUT_HINT_TEXT;
                 this.resetFileInput();
                 return;
@@ -263,7 +263,7 @@ class ColorByNumbersApp {
             // 立即保存上传的图片到我的画廊
             await this.saveUploadedImageToGallery(loadedImage, file.name);
             
-            Utils.showNotification('图片上传成功！正在生成游戏...', 'success');
+            Utils.showNotification('Image uploaded successfully! Generating game...', 'success');
             
             // 自动生成游戏
             await this.generateGame(loadedImage, file.name);
@@ -325,7 +325,7 @@ class ColorByNumbersApp {
                 thumbnailDataUrl: thumbnailDataUrl,
                 originalImageDataUrl: originalImageDataUrl, // 保存原图
                 uploadTimestamp: Date.now(),
-                isCompleted: false, // 初始状态为未完成
+                isCompleted: false, // Initial state as incomplete
                 type: 'uploaded' // 标记为上传类型
             };
 
@@ -343,11 +343,11 @@ class ColorByNumbersApp {
             if (existingIndex > -1) {
                 // 替换现有条目
                 userGallery[existingIndex] = uploadedImageEntry;
-                Utils.showNotification(`图片 "${fileName}" 已更新到我的画廊`, 'info');
+                Utils.showNotification(`Image "${fileName}" updated in my gallery`, 'info');
             } else {
                 // 添加新条目到开头
                 userGallery.unshift(uploadedImageEntry);
-                Utils.showNotification(`图片 "${fileName}" 已保存到我的画廊`, 'success');
+                Utils.showNotification(`Image "${fileName}" saved to my gallery`, 'success');
             }
             
             // 保存到localStorage
@@ -355,7 +355,7 @@ class ColorByNumbersApp {
             
         } catch (error) {
             console.error('Error saving uploaded image to gallery:', error);
-            Utils.showNotification('保存图片到画廊失败', 'warning');
+            Utils.showNotification('Failed to save image to gallery', 'warning');
         }
     }
 
@@ -379,12 +379,12 @@ class ColorByNumbersApp {
         // Verify the image is loaded and has valid dimensions
         if (!imageToProcess.complete || !imageToProcess.naturalWidth || !imageToProcess.naturalHeight) {
             console.error('generateGame aborted: Image not properly loaded or has invalid dimensions');
-            Utils.showNotification('图片加载失败，请重新选择', 'error');
+            Utils.showNotification('Image loading failed, please select again', 'error');
             return;
         }
 
         this.isProcessing = true;
-        this.showLoading('正在处理图片，生成像素级填色游戏...');
+        this.showLoading('Processing image, generating pixel-level coloring game...');
 
         try {
             // 使用默认参数：16色，像素级精确处理
@@ -419,7 +419,7 @@ class ColorByNumbersApp {
             gameEngine.startGame();
             
             Utils.showNotification(
-                `像素级填色游戏生成成功！图片尺寸: ${gameData.dimensions.width}×${gameData.dimensions.height} (${totalPixels}个像素)`,
+                `Pixel-level coloring game generated successfully! Image size: ${gameData.dimensions.width}×${gameData.dimensions.height} (${totalPixels} pixels)`,
                 'success',
                 4000
             );
@@ -428,9 +428,9 @@ class ColorByNumbersApp {
         } catch (error) {
             console.error('[Debug] Error in generateGame:', error);
             if (error.message === 'Image contains too many colors (max 128 allowed).') {
-                Utils.showNotification('图片颜色种类过多 (最多允许128种)，请选择颜色较少的图片。', 'warning', 5000);
+                Utils.showNotification('Image contains too many color varieties (max 128 allowed), please choose an image with fewer colors.', 'warning', 5000);
             } else {
-                Utils.showNotification(`游戏生成失败: ${error.message}`, 'error');
+                Utils.showNotification(`Game generation failed: ${error.message}`, 'error');
             }
         } finally {
             this.isProcessing = false;
@@ -564,7 +564,7 @@ class ColorByNumbersApp {
      * 重置游戏
      */
     resetGame() {
-        if (confirm('确定要重新开始游戏吗？当前进度将会丢失。')) {
+        if (confirm('Are you sure you want to restart the game? Current progress will be lost.')) {
             gameEngine.restartGame();
             canvasRenderer.render();
             this.updateLegend();
@@ -583,19 +583,19 @@ class ColorByNumbersApp {
         const uncompletedColors = colorStats.filter(stat => stat.completionRate < 100);
         
         if (uncompletedColors.length === 0) {
-            Utils.showNotification('所有颜色都已完成！', 'info');
+            Utils.showNotification('All colors are completed!', 'info');
             return;
         }
         
         // 创建选择界面，直接显示颜色编号
         const options = uncompletedColors.map(stat => 
-            `颜色编号 ${stat.number} (剩余 ${stat.totalCells - stat.completedCells} 个)`
+            `Color Number ${stat.number} (Remaining ${stat.totalCells - stat.completedCells})`
         );
         
         // 获取所有可用的颜色编号
         const availableNumbers = uncompletedColors.map(stat => stat.number);
         
-        const choice = prompt(`选择要自动填充的颜色编号:\n${options.join('\n')}\n\n请输入颜色编号 (${availableNumbers.join('、')}):`);
+        const choice = prompt(`Choose color number to auto-fill:\n${options.join('\n')}\n\nPlease enter color number (${availableNumbers.join(', ')}):`);
         
         if (choice) {
             const colorNumber = parseInt(choice);
@@ -605,9 +605,9 @@ class ColorByNumbersApp {
                 gameEngine.autoFillNumber(selectedColor.number);
                 canvasRenderer.render();
                 this.updateLegend();
-                Utils.showNotification(`已自动填充颜色编号 ${selectedColor.number}`, 'success');
+                Utils.showNotification(`Auto-filled color number ${selectedColor.number}`, 'success');
             } else {
-                Utils.showNotification(`请输入有效的颜色编号 (${availableNumbers.join('、')})`, 'warning');
+                Utils.showNotification(`Please enter a valid color number (${availableNumbers.join(', ')})`, 'warning');
             }
         }
     }
@@ -621,7 +621,7 @@ class ColorByNumbersApp {
         
         // 更新模态框内容
         const modalContent = this.elements.successModal.querySelector('.modal-content p');
-        modalContent.textContent = `用时 ${Utils.formatTime(result.playTime)}，完成了 ${result.totalCells} 个区域的填色！`;
+        modalContent.textContent = `Completed in ${Utils.formatTime(result.playTime)}, filled ${result.totalCells} areas!`;
     }
 
     /**
@@ -639,7 +639,7 @@ class ColorByNumbersApp {
             // 创建分享选项界面
             this.showShareOptions();
         } catch (error) {
-            Utils.showNotification('分享功能出错，请重试', 'error');
+            Utils.showNotification('Share function error, please try again', 'error');
         }
     }
 
@@ -655,44 +655,44 @@ class ColorByNumbersApp {
         shareModal.innerHTML = `
             <div class="modal-content" style="max-width: 400px;">
                 <div class="modal-header">
-                    <h3>分享作品</h3>
+                    <h3>Share Artwork</h3>
                     <button class="close-btn" onclick="this.closest('.modal').remove()">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="share-options">
                         <div class="share-section">
-                            <h4>下载选项</h4>
+                            <h4>Download Options</h4>
                             <button class="share-btn download-btn" data-action="download-normal">
-                                📥 下载原尺寸
+                                📥 Download Original Size
                             </button>
                             <button class="share-btn download-btn" data-action="download-hd">
-                                📥 下载高清版
+                                📥 Download HD Version
                             </button>
                             <button class="share-btn download-btn" data-action="download-hd-grid">
-                                📥 下载高清版（带网格）
+                                📥 Download HD Version (with Grid)
                             </button>
                         </div>
                         
                         <div class="share-section">
-                            <h4>社交媒体分享</h4>
+                            <h4>Social Media Sharing</h4>
                             <button class="share-btn social-btn" data-action="share-twitter">
-                                🐦 分享到 Twitter
+                                🐦 Share to Twitter
                             </button>
                             <button class="share-btn social-btn" data-action="share-facebook">
-                                📘 分享到 Facebook
+                                📘 Share to Facebook
                             </button>
                             <button class="share-btn social-btn" data-action="share-weibo">
-                                🔴 分享到微博
+                                🔴 Share to Weibo
                             </button>
                             <button class="share-btn social-btn" data-action="copy-link">
-                                🔗 复制分享链接
+                                🔗 Copy Share Link
                             </button>
                         </div>
                         
                         <div class="share-section">
-                            <h4>其他选项</h4>
+                            <h4>Other Options</h4>
                             <button class="share-btn other-btn" data-action="print">
-                                🖨️ 打印作品
+                                🖨️ Print Artwork
                             </button>
                         </div>
                     </div>
@@ -794,7 +794,7 @@ class ColorByNumbersApp {
                 // Fallback to current game canvas if no specific artwork entry is provided (e.g. sharing during game)
                 // This part is for the original share button in the success modal if not sharing from user gallery
             } else {
-                Utils.showNotification('没有可分享的图片数据', 'warning');
+                Utils.showNotification('No image data to share', 'warning');
                 return;
             }
 
@@ -803,7 +803,7 @@ class ColorByNumbersApp {
                     // If sharing from user gallery, completedImageDataUrl is already 1x
                     // If from current game, exportImage(1) gets 1x.
                     imageDataToUse = artworkEntry ? artworkEntry.completedImageDataUrl : canvasRenderer.exportImage(1);
-                    await this.downloadImage(imageDataToUse, `${imageName}-original.png`, '原尺寸');
+                    await this.downloadImage(imageDataToUse, `${imageName}-original.png`, 'Original Size');
                     break;
                     
                 case 'download-hd':
@@ -824,20 +824,20 @@ class ColorByNumbersApp {
                         
                         try {
                             imageDataToUse = await Utils.upscaleImageDataUrl(artworkEntry.completedImageDataUrl, targetWidth, targetHeight);
-                            await this.downloadImage(imageDataToUse, `${imageName}-hd-upscaled-${hdScaleFactor}x.png`, `高清放大版 (${hdScaleFactor}x)`);
+                            await this.downloadImage(imageDataToUse, `${imageName}-hd-upscaled-${hdScaleFactor}x.png`, `HD Upscaled Version (${hdScaleFactor}x)`);
                         } catch (upscaleError) {
                             console.error('Error upscaling saved artwork:', upscaleError);
-                            Utils.showNotification('放大已保存作品失败', 'error');
+                            Utils.showNotification('Failed to upscale saved artwork', 'error');
                             // Fallback to downloading the 1x version if upscaling fails
                             imageDataToUse = artworkEntry.completedImageDataUrl;
-                            await this.downloadImage(imageDataToUse, `${imageName}-completed-1x.png`, '已保存作品 (1x)');
+                            await this.downloadImage(imageDataToUse, `${imageName}-completed-1x.png`, 'Saved Artwork (1x)');
                         }
                     } else if (canvasRenderer && gameEngine && gameEngine.getGameData()) {
                         // For current game, generate a fresh HD export with dynamic scale
                         imageDataToUse = canvasRenderer.exportImage(hdScaleFactor);
-                        await this.downloadImage(imageDataToUse, `${imageName}-hd-${hdScaleFactor}x.png`, `高清版 (${hdScaleFactor}x)`);
+                        await this.downloadImage(imageDataToUse, `${imageName}-hd-${hdScaleFactor}x.png`, `HD Grid Version (${hdScaleFactor}x)`);
                     } else {
-                        Utils.showNotification('无法生成高清版图片', 'warning');
+                        Utils.showNotification('Unable to generate HD version image', 'warning');
                         return;
                     }
                     break;
@@ -854,10 +854,10 @@ class ColorByNumbersApp {
                     if (canvasRenderer && gameEngine && gameEngine.getGameData()) {
                         // For current game, generate a fresh HD export with dynamic scale and grid
                         imageDataToUse = canvasRenderer.exportImage(hdGridScaleFactor, true); // showGrid = true
-                        await this.downloadImage(imageDataToUse, `${imageName}-hd-grid-${hdGridScaleFactor}x.png`, `高清带网格版 (${hdGridScaleFactor}x)`);
+                        await this.downloadImage(imageDataToUse, `${imageName}-hd-grid-${hdGridScaleFactor}x.png`, `HD Grid Version (${hdGridScaleFactor}x)`);
                     } else if (artworkEntry) {
                         // For saved artworks, temporarily recreate the game to generate grid version
-                        Utils.showNotification('正在生成带网格的高清版本...', 'info');
+                        Utils.showNotification('Generating HD grid version...', 'info');
                         
                         try {
                             // Store current game state if exists
@@ -892,19 +892,19 @@ class ColorByNumbersApp {
                                         }
                                         
                                         // Download the generated image
-                                        await this.downloadImage(gridImageData, `${imageName}-hd-grid-${hdGridScaleFactor}x.png`, `高清带网格版 (${hdGridScaleFactor}x)`);
+                                        await this.downloadImage(gridImageData, `${imageName}-hd-grid-${hdGridScaleFactor}x.png`, `HD Grid Version (${hdGridScaleFactor}x)`);
                                         
                                     } else {
-                                        Utils.showNotification('渲染器未初始化', 'error');
+                                        Utils.showNotification('Renderer not initialized', 'error');
                                     }
                                 } catch (error) {
                                     console.error('Error generating grid version:', error);
-                                    Utils.showNotification('生成带网格版本失败，请重试', 'error');
+                                    Utils.showNotification('Failed to generate grid version, please try again', 'error');
                                 }
                             };
                             
                             img.onerror = () => {
-                                Utils.showNotification('图片加载失败', 'error');
+                                Utils.showNotification('Image loading failed', 'error');
                             };
                             
                             // Load from the original image or completed image
@@ -912,10 +912,10 @@ class ColorByNumbersApp {
                             
                         } catch (error) {
                             console.error('Error processing grid download:', error);
-                            Utils.showNotification('生成带网格版本失败，请重试', 'error');
+                            Utils.showNotification('Failed to generate grid version, please try again', 'error');
                         }
                     } else {
-                        Utils.showNotification('无法生成高清带网格版图片', 'warning');
+                        Utils.showNotification('Failed to generate HD grid version, please try again', 'warning');
                         return;
                     }
                     break;
@@ -945,7 +945,7 @@ class ColorByNumbersApp {
             }
         } catch (error) {
             console.error('Share action error:', error);
-            Utils.showNotification('操作失败，请重试', 'error');
+            Utils.showNotification('Operation failed, please try again', 'error');
         }
     }
 
@@ -956,15 +956,15 @@ class ColorByNumbersApp {
      * @param {string} sizeName - Size description for notification
      */
     async downloadImage(imageData, fileName, sizeName) {
-        Utils.showNotification(`正在生成${sizeName}图片...`, 'info');
+        Utils.showNotification(`Generating ${sizeName} image...`, 'info');
         
         try {
             // const imageData = canvasRenderer.exportImage(scale); // Old way
             // Utils.downloadFile(imageData, fileName); // Directly use provided imageData
             Utils.downloadFile(imageData, fileName);
-            Utils.showNotification(`${sizeName}作品已下载！`, 'success');
+            Utils.showNotification(`${sizeName} artwork downloaded!`, 'success');
         } catch (error) {
-            Utils.showNotification(`${sizeName}下载失败，请重试`, 'error');
+            Utils.showNotification(`${sizeName} download failed, please try again`, 'error');
         }
     }
 
@@ -972,7 +972,7 @@ class ColorByNumbersApp {
      * 分享到Twitter
      */
     shareToTwitter() {
-        const text = encodeURIComponent('我完成了一幅像素级填色作品！🎨 #ColorByNumbers #PixelArt');
+        const text = encodeURIComponent('I completed a pixel-level coloring artwork! 🎨 #ColorByNumbers #PixelArt');
         const url = encodeURIComponent(window.location.href);
         const twitterUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
         window.open(twitterUrl, '_blank');
@@ -991,7 +991,7 @@ class ColorByNumbersApp {
      * 分享到微博
      */
     shareToWeibo() {
-        const text = encodeURIComponent('我完成了一幅像素级填色作品！🎨');
+        const text = encodeURIComponent('I completed a pixel-level coloring artwork! 🎨');
         const url = encodeURIComponent(window.location.href);
         const weiboUrl = `https://service.weibo.com/share/share.php?title=${text}&url=${url}`;
         window.open(weiboUrl, '_blank');
@@ -1003,7 +1003,7 @@ class ColorByNumbersApp {
     async copyShareLink() {
         try {
             await navigator.clipboard.writeText(window.location.href);
-            Utils.showNotification('分享链接已复制到剪贴板！', 'success');
+            Utils.showNotification('Share link copied to clipboard!', 'success');
         } catch (error) {
             // 降级方案
             const textArea = document.createElement('textarea');
@@ -1012,7 +1012,7 @@ class ColorByNumbersApp {
             textArea.select();
             document.execCommand('copy');
             document.body.removeChild(textArea);
-            Utils.showNotification('分享链接已复制到剪贴板！', 'success');
+            Utils.showNotification('Share link copied to clipboard!', 'success');
         }
     }
 
@@ -1023,7 +1023,7 @@ class ColorByNumbersApp {
     printImage(artworkEntry = null) {
         try {
             let imageDataToPrint;
-            let artworkTitle = '像素填色作品';
+            let artworkTitle = 'Pixel Coloring Artwork';
 
             // Always try to use canvasRenderer to generate grid version if available
             if (canvasRenderer && gameEngine && gameEngine.getGameData()) {
@@ -1037,7 +1037,7 @@ class ColorByNumbersApp {
                 this.executePrint(imageDataToPrint, artworkTitle);
             } else if (artworkEntry) {
                 // For saved artworks, temporarily recreate the game to generate grid version
-                Utils.showNotification('正在生成带网格的打印版本...', 'info');
+                Utils.showNotification('Generating print version with grid...', 'info');
                 
                 try {
                     // Store current game state if exists
@@ -1076,17 +1076,17 @@ class ColorByNumbersApp {
                                 // Execute print
                                 this.executePrint(printImageData, artworkTitle);
                                 
-                            } else {
-                                Utils.showNotification('渲染器未初始化', 'error');
-                            }
+                                                                } else {
+                                        Utils.showNotification('Renderer not initialized', 'error');
+                                    }
                         } catch (error) {
                             console.error('Error generating print version:', error);
-                            Utils.showNotification('生成打印版本失败，请重试', 'error');
+                            Utils.showNotification('Failed to generate print version, please try again', 'error');
                         }
                     };
                     
                     img.onerror = () => {
-                        Utils.showNotification('图片加载失败', 'error');
+                        Utils.showNotification('Image loading failed', 'error');
                     };
                     
                     // Load from the original image or completed image
@@ -1094,14 +1094,14 @@ class ColorByNumbersApp {
                     
                 } catch (error) {
                     console.error('Error processing print:', error);
-                    Utils.showNotification('生成打印版本失败，请重试', 'error');
+                    Utils.showNotification('Failed to generate print version, please try again', 'error');
                 }
             } else {
-                Utils.showNotification('没有可打印的图片', 'warning');
+                Utils.showNotification('No printable image available', 'warning');
                 return;
             }
         } catch (error) {
-            Utils.showNotification('打印功能失败，请重试', 'error');
+            Utils.showNotification('Print function failed, please try again', 'error');
         }
     }
 
@@ -1164,7 +1164,7 @@ class ColorByNumbersApp {
                 <body>
                     <h1>${artworkTitle}</h1>
                     <img src="${imageDataToPrint}" alt="${artworkTitle}">
-                    <p>制作时间: ${new Date().toLocaleString()}</p>
+                    <p>Created: ${new Date().toLocaleString()}</p>
                 </body>
             </html>
         `);
@@ -1175,7 +1175,7 @@ class ColorByNumbersApp {
             printWindow.close();
         };
         
-        Utils.showNotification('打印窗口已打开！', 'success');
+        Utils.showNotification('Print window opened!', 'success');
     }
 
     /**
@@ -1190,7 +1190,7 @@ class ColorByNumbersApp {
      * 显示加载状态
      * @param {string} message - 加载消息
      */
-    showLoading(message = '加载中...') {
+    showLoading(message = 'Loading...') {
         this.elements.loadingOverlay.classList.add('show');
         const loadingText = this.elements.loadingOverlay.querySelector('p');
         if (loadingText) {
@@ -1264,7 +1264,7 @@ class ColorByNumbersApp {
         if (!this.elements.sizeFilter) return;
         
         // Clear existing options except the first one
-        this.elements.sizeFilter.innerHTML = '<option value="all">所有尺寸</option>';
+        this.elements.sizeFilter.innerHTML = '<option value="all">All Sizes</option>';
         
         const sizeCategoryNames = galleryManager.getSizeCategoryNames();
         sizeCategoryNames.forEach(categoryName => {
@@ -1281,7 +1281,7 @@ class ColorByNumbersApp {
     renderAllBuiltInImages() {
         if (!this.elements.filteredImagesContainer) return;
         
-        this.elements.filteredImagesContainer.innerHTML = '<h3>所有图片</h3>';
+        this.elements.filteredImagesContainer.innerHTML = '<h3>All Images</h3>';
         
         // Get all images from all folder categories
         const allImages = [];
@@ -1298,7 +1298,7 @@ class ColorByNumbersApp {
             this.renderImagesToContainer(allImages, imagesContainer);
             this.elements.filteredImagesContainer.appendChild(imagesContainer);
         } else {
-            this.elements.filteredImagesContainer.innerHTML += '<p>没有找到图片。</p>';
+            this.elements.filteredImagesContainer.innerHTML += '<p>No images found.</p>';
         }
     }
 
@@ -1326,7 +1326,7 @@ class ColorByNumbersApp {
             this.renderImagesToContainer(filteredImages, imagesContainer);
             this.elements.filteredImagesContainer.appendChild(imagesContainer);
         } else {
-            this.elements.filteredImagesContainer.innerHTML += '<p>该尺寸分类中没有图片。</p>';
+            this.elements.filteredImagesContainer.innerHTML += '<p>No images in this size category.</p>';
         }
     }
 
@@ -1530,7 +1530,7 @@ class ColorByNumbersApp {
         this.currentImage = null;
         this.currentUploadedImageName = null; // Clear stored uploaded file name
         // Clear legend and game info if they are not part of gamePage div and get repopulated
-        if(this.elements.legendContainer) this.elements.legendContainer.innerHTML = '<p class="legend-placeholder">生成游戏后显示颜色对应关系</p>';
+        if(this.elements.legendContainer) this.elements.legendContainer.innerHTML = '<p class="legend-placeholder">After generating the game, the color correspondence will be displayed</p>';
         if(this.elements.progressFill) this.elements.progressFill.style.width = '0%';
         if(this.elements.progressText) this.elements.progressText.textContent = '0%';
         if(this.elements.totalAreas) this.elements.totalAreas.textContent = '0';
@@ -1697,7 +1697,7 @@ class ColorByNumbersApp {
             } else {
                 console.warn("Saving uploaded artwork, but currentUploadedImageName is not set. Using fallback name.");
                 artworkName = 'Untitled Uploaded File'; 
-                if (this.elements.fileName.textContent && this.elements.fileName.textContent !== '未选择文件' && this.elements.fileName.textContent.trim() !== '') {
+                if (this.elements.fileName.textContent && this.elements.fileName.textContent !== 'No file selected' && this.elements.fileName.textContent.trim() !== '') {
                     artworkName = this.elements.fileName.textContent;
                 }
             }
@@ -1736,7 +1736,7 @@ class ColorByNumbersApp {
                     };
                     
                     Utils.storage.set('userGallery', userGallery);
-                    Utils.showNotification(`作品 "${artworkName}" 完成并已更新！`, 'success');
+                    Utils.showNotification(`Artwork "${artworkName}" completed and updated!`, 'success');
                 } else {
                     console.warn('Could not find uploaded image in userGallery to update completion status');
                 }
@@ -1765,10 +1765,10 @@ class ColorByNumbersApp {
 
                 if (existingArtworkIndex > -1) {
                     userGallery.splice(existingArtworkIndex, 1, artworkEntry);
-                    Utils.showNotification(`作品 "${artworkName}" 已在我的画廊中更新!`, 'info');
+                    Utils.showNotification(`Artwork "${artworkName}" updated in my gallery!`, 'info');
                 } else {
                     userGallery.unshift(artworkEntry);
-                    Utils.showNotification(`作品 "${artworkName}" 已保存到我的画廊!`, 'success');
+                    Utils.showNotification(`Artwork "${artworkName}" saved to my gallery!`, 'success');
                 }
                 
                 Utils.storage.set('userGallery', userGallery);
@@ -1776,7 +1776,7 @@ class ColorByNumbersApp {
 
         } catch (error) {
             console.error('Error saving completed artwork:', error);
-            Utils.showNotification('保存作品失败', 'error');
+            Utils.showNotification('Failed to save artwork', 'error');
         }
     }
 
@@ -1790,7 +1790,7 @@ class ColorByNumbersApp {
         const userGallery = Utils.storage.get('userGallery', []);
 
         if (userGallery.length === 0) {
-            this.elements.userGalleryContainer.innerHTML += '<p class="gallery-placeholder">您还没有上传或完成任何作品。</p>';
+            this.elements.userGalleryContainer.innerHTML += '<p class="gallery-placeholder">You haven\'t uploaded or completed any artworks yet.</p>';
             return;
         }
 
@@ -1802,7 +1802,7 @@ class ColorByNumbersApp {
         if (uploadedImages.length > 0) {
             const uploadedSection = document.createElement('div');
             uploadedSection.className = 'gallery-category-section';
-            uploadedSection.innerHTML = '<h3>📤 我上传的图片</h3>';
+            uploadedSection.innerHTML = '<h3>📤 My Uploaded Images</h3>';
             
             const uploadedContainer = document.createElement('div');
             uploadedContainer.className = 'gallery-images-container';
@@ -1820,7 +1820,7 @@ class ColorByNumbersApp {
         if (completedBuiltIns.length > 0) {
             const completedSection = document.createElement('div');
             completedSection.className = 'gallery-category-section';
-            completedSection.innerHTML = '<h3>✅ 已完成的内置图片</h3>';
+            completedSection.innerHTML = '<h3>✅ Completed Built-in Images</h3>';
             
             const completedContainer = document.createElement('div');
             completedContainer.className = 'gallery-images-container';
@@ -1857,9 +1857,9 @@ class ColorByNumbersApp {
         
         let titleText = `${imageEntry.name} (${imageEntry.dimensions.width}×${imageEntry.dimensions.height})`;
         if (imageEntry.isCompleted) {
-            titleText += ` - 已完成 (${completionDate})`;
+            titleText += ` - Completed (${completionDate})`;
         } else {
-            titleText += ` - 未完成 (上传于: ${uploadDate})`;
+            titleText += ` - Incomplete (Uploaded: ${uploadDate})`;
         }
         
         galleryItem.title = titleText;
@@ -1885,7 +1885,7 @@ class ColorByNumbersApp {
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-btn';
             deleteBtn.innerHTML = '🗑️';
-            deleteBtn.title = '删除此图片';
+            deleteBtn.title = 'Delete this image';
             deleteBtn.addEventListener('click', (e) => {
                 e.stopPropagation(); // 防止触发图片点击事件
                 this.handleDeleteUserGalleryItem(imageEntry);
@@ -1983,7 +1983,7 @@ class ColorByNumbersApp {
         }
         
         // Reset all UI elements
-        if(this.elements.legendContainer) this.elements.legendContainer.innerHTML = '<p class="legend-placeholder">生成游戏后显示颜色对应关系</p>';
+        if(this.elements.legendContainer) this.elements.legendContainer.innerHTML = '<p class="legend-placeholder">Color correspondence will be shown after game generation</p>';
         if(this.elements.progressFill) this.elements.progressFill.style.width = '0%';
         if(this.elements.progressText) this.elements.progressText.textContent = '0%';
         if(this.elements.totalAreas) this.elements.totalAreas.textContent = '0';
@@ -2015,13 +2015,13 @@ class ColorByNumbersApp {
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                Utils.showNotification('测试网格导出完成，请检查下载的图片', 'success');
+                Utils.showNotification('Test grid export completed, please check downloaded image', 'success');
             } else {
                 console.log('[Test] Grid export failed');
-                Utils.showNotification('网格导出测试失败', 'error');
+                Utils.showNotification('Grid export test failed', 'error');
             }
         } else {
-            Utils.showNotification('请先加载一个游戏再测试', 'warning');
+            Utils.showNotification('Please load a game first to test', 'warning');
         }
     }
 
@@ -2030,7 +2030,7 @@ class ColorByNumbersApp {
      */
     toggleBucketTool() {
         if (!gameEngine || !gameEngine.getGameData()) {
-            Utils.showNotification('请先加载游戏！', 'warning');
+            Utils.showNotification('Please load the game first!', 'warning');
             return;
         }
 
@@ -2038,8 +2038,8 @@ class ColorByNumbersApp {
         
         if (this.bucketTool.isActive) {
             this.elements.autoFillBtn.classList.add('bucket-active');
-            this.elements.autoFillBtn.textContent = '🪣 油漆桶 (激活)';
-            Utils.showNotification('油漆桶已激活！点击格子填充相邻同颜色区域', 'info', 3000);
+            this.elements.autoFillBtn.textContent = '🪣 Bucket (Active)';
+            Utils.showNotification('Bucket tool activated! Click on cells to fill adjacent same color areas', 'info', 3000);
             
             // 改变画布光标样式
             if (canvasRenderer && canvasRenderer.canvas) {
@@ -2047,8 +2047,8 @@ class ColorByNumbersApp {
             }
         } else {
             this.elements.autoFillBtn.classList.remove('bucket-active');
-            this.elements.autoFillBtn.textContent = '🪣 油漆桶';
-            Utils.showNotification('油漆桶已停用', 'info');
+            this.elements.autoFillBtn.textContent = '🪣 Bucket';
+            Utils.showNotification('Bucket tool disabled', 'info');
             
             // 恢复默认光标样式
             if (canvasRenderer && canvasRenderer.canvas) {
@@ -2074,7 +2074,7 @@ class ColorByNumbersApp {
         const cellsToFill = this.findConnectedCells(startCell, targetNumber, gameGrid);
         
         if (cellsToFill.length === 0) {
-            Utils.showNotification('没有找到相邻的同颜色区域', 'warning');
+            Utils.showNotification('No adjacent same color area found', 'warning');
             return;
         }
 
@@ -2087,14 +2087,14 @@ class ColorByNumbersApp {
         });
 
         if (filledCount > 0) {
-            Utils.showNotification(`油漆桶填充了 ${filledCount} 个区域`, 'success');
+            Utils.showNotification(`Bucket filled ${filledCount} areas`, 'success');
             canvasRenderer.render();
         }
 
         // 填充后自动停用油漆桶
         this.bucketTool.isActive = false;
         this.elements.autoFillBtn.classList.remove('bucket-active');
-        this.elements.autoFillBtn.textContent = '🪣 油漆桶';
+        this.elements.autoFillBtn.textContent = '🪣 Bucket';
         
         // 恢复默认光标
         if (canvasRenderer && canvasRenderer.canvas) {
@@ -2155,7 +2155,7 @@ class ColorByNumbersApp {
      */
     handleDeleteUserGalleryItem(imageEntry) {
         // 确认删除
-        const confirmMessage = `确定要删除图片 "${imageEntry.name}" 吗？\n${imageEntry.isCompleted ? '已完成的作品' : '未完成的作品'}将被永久删除。`;
+        const confirmMessage = `Are you sure you want to delete image "${imageEntry.name}"?\n${imageEntry.isCompleted ? 'Completed artwork' : 'Incomplete artwork'} will be permanently deleted.`;
         
         if (!confirm(confirmMessage)) {
             return;
@@ -2174,16 +2174,16 @@ class ColorByNumbersApp {
                 userGallery.splice(indexToDelete, 1);
                 Utils.storage.set('userGallery', userGallery);
                 
-                Utils.showNotification(`图片 "${imageEntry.name}" 已删除`, 'success');
+                Utils.showNotification(`Image "${imageEntry.name}" has been deleted`, 'success');
                 
                 // 重新渲染用户画廊
                 this.renderUserGallery();
             } else {
-                Utils.showNotification('删除失败：找不到对应的图片记录', 'error');
+                Utils.showNotification('Deletion failed: Could not find corresponding image record', 'error');
             }
         } catch (error) {
             console.error('Error deleting user gallery item:', error);
-            Utils.showNotification('删除失败：发生错误', 'error');
+            Utils.showNotification('Deletion failed: An error occurred', 'error');
         }
     }
 
@@ -2219,7 +2219,7 @@ class ColorByNumbersApp {
                 Utils.storage.set('userGallery', userGallery);
                 const cleanedCount = originalLength - userGallery.length;
                 console.log(`Cleaned up ${cleanedCount} invalid gallery entries`);
-                Utils.showNotification(`已清理 ${cleanedCount} 个无效的画廊条目`, 'info');
+                Utils.showNotification(`Cleaned up ${cleanedCount} invalid gallery entries`, 'info');
             }
         } catch (error) {
             console.error('Error cleaning up gallery entries:', error);
@@ -2243,7 +2243,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 全局错误处理
     window.addEventListener('error', (e) => {
         console.error('Application error:', e.error);
-        Utils.showNotification('发生了一个错误，请刷新页面重试', 'error');
+        Utils.showNotification('An error occurred, please refresh the page and try again', 'error');
     });
     
     // 页面卸载时清理资源

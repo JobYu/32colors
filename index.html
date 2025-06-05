@@ -1,115 +1,115 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Color by Numbers - 数字填色游戏</title>
+    <title>Color by Numbers - Digital Coloring Game</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
     <div class="container">
-        <!-- 头部标题 -->
+        <!-- Header -->
         <header class="header">
             <h1>🎨 Color by Numbers</h1>
-            <p>将像素画作品转换为像素级数字填色游戏</p>
+            <p>Convert pixel art into pixel-level digital coloring games</p>
             
-            <!-- 导航菜单 -->
+            <!-- Navigation Menu -->
             <nav class="navigation">
-                <button id="homeNavBtn" class="nav-btn active">🏠 首页</button>
-                <button id="galleryNavBtn" class="nav-btn">🌟 我的画廊</button>
+                <button id="homeNavBtn" class="nav-btn active">🏠 Home</button>
+                <button id="galleryNavBtn" class="nav-btn">🌟 My Gallery</button>
             </nav>
         </header>
 
-        <!-- 首页内容 -->
+        <!-- Home Page Content -->
         <div id="homePage">
-            <!-- 内置图库区域 -->
+            <!-- Built-in Gallery -->
             <section class="gallery-section" id="builtInGalleryContainer">
                 
                 
-                <!-- 筛选器控件 -->
+                <!-- Filter Controls -->
                 <div class="gallery-filters">
                     <div class="filter-group">
-                        <label for="sizeFilter">按尺寸筛选：</label>
+                        <label for="sizeFilter">Filter by Size:</label>
                         <select id="sizeFilter" class="filter-select">
-                            <option value="all">所有尺寸</option>
+                            <option value="all">All Sizes</option>
                         </select>
                     </div>
                 </div>
                 
-                <!-- 分类显示 -->
+                <!-- Category Display -->
                 <div id="folderCategoriesContainer">
                     <!-- Folder categories will be rendered here by js/main.js -->
                 </div>
                 
-                <!-- 筛选后的图片显示区域 -->
+                <!-- Filtered Images Display Area -->
                 <div id="filteredImagesContainer">
                     <!-- Filtered images will be rendered here when filter is applied -->
                 </div>
             </section>
-                    <!-- 图片输入区域 -->
+                    <!-- Image Input Area -->
                     <section class="input-section">
                         <div class="input-group">
                             <div class="file-upload">
                                 <label for="imageLoader" class="upload-btn">
-                                    打开像素画图片
+                                    Open Pixel Art Image
                                 </label>
                                 <input type="file" id="imageLoader" accept="image/*" style="display: none;">
-                                <span class="file-name" id="fileName">选择像素图片 (PNG/JPG格式，最大300×300像素，128色以内)。上传的图片只会保存在本机，不会上传服务器。</span>
+                                <span class="file-name" id="fileName">Choose a pixel image (PNG/JPG format, max 300×300 pixels, within 128 colors). Uploaded images are saved locally only and not uploaded to servers.</span>
                             </div>
                         </div>
                     </section>
         </div> <!-- End of homePage -->
 
-        <!-- 我的画廊页面 (独立页面) -->
+        <!-- My Gallery Page (Standalone) -->
         <div id="myGalleryPage" style="display: none;">
             <section class="gallery-section" id="userGalleryContainer">
-                <p class="gallery-placeholder">您完成的作品将在这里展示。</p>
+                <p class="gallery-placeholder">Your completed artworks will be displayed here.</p>
             </section>
         </div> <!-- End of myGalleryPage -->
 
-        <!-- 游戏页面内容 (初始隐藏) -->
+        <!-- Game Page Content (Initially Hidden) -->
         <div id="gamePage" style="display: none;">
-            <!-- 游戏页面顶部锚点（用于移动端滚动定位） -->
+            <!-- Game Page Top Anchor (for mobile scroll positioning) -->
             <div id="gamePageTop" style="position: absolute; top: 0;"></div>
             
             <main class="game-area">
-                <!-- 上方控制区域 -->
+                <!-- Top Control Area -->
                 <div class="game-top-controls">
-                    <!-- 颜色图例 -->
+                    <!-- Color Legend -->
                     <div class="color-legend">
                         <div class="legend-container" id="legendContainer">
-                            <p class="legend-placeholder">生成游戏后显示颜色对应关系</p>
+                            <p class="legend-placeholder">Color correspondence will be shown after game generation</p>
                         </div>
                     </div>
                     
-                    <!-- 游戏控制按钮 -->
+                    <!-- Game Control Buttons -->
                     <div class="game-controls">
-                        <button id="resetGameBtn" class="control-btn compact">🔄 重玩</button>
-                        <button id="autoFillBtn" class="control-btn compact">🪣 油漆桶</button>
-                        <button id="saveProgressBtn" class="control-btn compact" style="display: none;">💾 保存进度</button>
+                        <button id="resetGameBtn" class="control-btn compact">🔄 Replay</button>
+                        <button id="autoFillBtn" class="control-btn compact">🪣 Paint Bucket</button>
+                        <button id="saveProgressBtn" class="control-btn compact" style="display: none;">💾 Save Progress</button>
                     </div>
                 </div>
 
-                <!-- 游戏画布区域 -->
+                <!-- Game Canvas Area -->
                 <div class="canvas-container">
                     <div class="canvas-wrapper">
                         <canvas id="gameCanvas"></canvas>
                         <div class="loading-overlay" id="loadingOverlay">
                             <div class="spinner"></div>
-                            <p>正在处理图片...</p>
+                            <p>Processing image...</p>
                         </div>
                     </div>
                     
-                    <!-- 画布控制和进度区域 -->
+                    <!-- Canvas Control and Progress Area -->
                     <div class="canvas-bottom-controls">
-                        <!-- 画布控制按钮 -->
+                        <!-- Canvas Control Buttons -->
                         <div class="canvas-controls">
-                            <button id="zoomInBtn" title="放大">🔍+</button>
-                            <button id="zoomOutBtn" title="缩小">🔍-</button>
+                            <button id="zoomInBtn" title="Zoom In">🔍+</button>
+                            <button id="zoomOutBtn" title="Zoom Out">🔍-</button>
                         </div>
                         
-                        <!-- 进度条 -->
+                        <!-- Progress Bar -->
                         <div class="progress-container">
                             <div class="progress-bar">
                                 <div class="progress-fill" id="progressFill"></div>
@@ -119,57 +119,57 @@
                     </div>
                 </div>
                 
-                <!-- 隐藏的游戏信息（保持DOM结构但不显示） -->
+                <!-- Hidden Game Info (maintain DOM structure but not displayed) -->
                 <div class="game-info" style="display: none;">
-                    <h3>📊 游戏信息</h3>
+                    <h3>📊 Game Info</h3>
                     <div class="info-item">
-                        <span>总区域:</span>
+                        <span>Total Areas:</span>
                         <span id="totalAreas">0</span>
                     </div>
                     <div class="info-item">
-                        <span>已完成:</span>
+                        <span>Completed:</span>
                         <span id="completedAreas">0</span>
                     </div>
                     <div class="info-item">
-                        <span>剩余:</span>
+                        <span>Remaining:</span>
                         <span id="remainingAreas">0</span>
                     </div>
                     <div class="info-item">
-                        <span>用时:</span>
+                        <span>Time:</span>
                         <span id="gameTime">00:00</span>
                     </div>
                 </div>
             </main>
         </div> <!-- End of gamePage -->
 
-        <!-- 成功完成模态框 -->
+        <!-- Success Completion Modal -->
         <div class="modal" id="successModal">
             <div class="modal-content">
-                <h2>🎉 恭喜完成！</h2>
-                <p>您已成功完成这幅数字填色画！</p>
+                <h2>🎉 Congratulations!</h2>
+                <p>You have successfully completed this digital coloring artwork!</p>
                 <div class="modal-buttons">
-                    <button id="shareBtn" class="modal-btn">📤 分享作品</button>
-                    <button id="newGameBtn" class="modal-btn">🎮 新游戏</button>
-                    <button id="closeModalBtn" class="modal-btn secondary">关闭</button>
+                    <button id="shareBtn" class="modal-btn">📤 Share Artwork</button>
+                    <button id="newGameBtn" class="modal-btn">🎮 New Game</button>
+                    <button id="closeModalBtn" class="modal-btn secondary">Close</button>
                 </div>
             </div>
         </div>
 
-        <!-- 页脚 -->
+        <!-- Footer -->
         <footer class="footer">
-            <p>&copy; 2025 Color by Numbers. 享受数字填色的乐趣！</p>
+            <p>&copy; 2025 Color by Numbers. Enjoy the fun of digital coloring!</p>
         </footer>
     </div>
 
-    <!-- JavaScript 模块 -->
+    <!-- JavaScript Modules -->
     <script>
-        // 检查浏览器兼容性
+        // Check browser compatibility
         if (!window.Promise || !Array.prototype.includes || !Object.assign) {
-            alert('您的浏览器版本过低，请升级到较新版本的Chrome、Firefox、Safari或Edge浏览器。\n\nYour browser is too old. Please upgrade to a newer version of Chrome, Firefox, Safari, or Edge.');
+            alert('Your browser version is too old, please upgrade to a newer version of Chrome, Firefox, Safari, or Edge browser.\n\nYour browser is too old. Please upgrade to a newer version of Chrome, Firefox, Safari, or Edge.');
         }
     </script>
     
-    <!-- 浏览器兼容性补丁 -->
+    <!-- Browser Compatibility Patches -->
     <script src="js/polyfills.js"></script>
     
     <script defer src="js/utils.js"></script>

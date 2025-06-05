@@ -18,7 +18,7 @@ class ImageProcessor {
     loadImageFromFile(file) {
         return new Promise((resolve, reject) => {
             if (!file.type.startsWith('image/')) {
-                reject(new Error('请选择有效的图片文件'));
+                reject(new Error('Please select a valid image file'));
                 return;
             }
 
@@ -26,10 +26,10 @@ class ImageProcessor {
             reader.onload = (e) => {
                 const img = new Image();
                 img.onload = () => resolve(img);
-                img.onerror = () => reject(new Error('图片加载失败'));
+                img.onerror = () => reject(new Error('Image loading failed'));
                 img.src = e.target.result;
             };
-            reader.onerror = () => reject(new Error('文件读取失败'));
+            reader.onerror = () => reject(new Error('File reading failed'));
             reader.readAsDataURL(file);
         });
     }
@@ -42,7 +42,7 @@ class ImageProcessor {
     loadImageFromUrl(url) {
         return new Promise((resolve, reject) => {
             if (!Utils.isValidImageUrl(url)) {
-                reject(new Error('请输入有效的图片URL'));
+                reject(new Error('Please enter a valid image URL'));
                 return;
             }
 
@@ -77,13 +77,13 @@ class ImageProcessor {
     loadImageFromDataUrl(dataUrl) {
         return new Promise((resolve, reject) => {
             if (!dataUrl || !dataUrl.startsWith('data:image/')) {
-                reject(new Error('无效的Data URL'));
+                reject(new Error('Invalid Data URL'));
                 return;
             }
 
             const img = new Image();
             img.onload = () => resolve(img);
-            img.onerror = () => reject(new Error('Data URL图片加载失败'));
+            img.onerror = () => reject(new Error('Data URL image loading failed'));
             img.src = dataUrl;
         });
     }
@@ -103,7 +103,7 @@ class ImageProcessor {
             
             const response = await fetch(proxyUrl);
             if (!response.ok) {
-                throw new Error('代理加载失败');
+                throw new Error('Proxy loading failed');
             }
             
             const blob = await response.blob();
@@ -117,12 +117,12 @@ class ImageProcessor {
                 };
                 img.onerror = () => {
                     URL.revokeObjectURL(objectUrl);
-                    reject(new Error('代理图片加载失败'));
+                    reject(new Error('Proxy image loading failed'));
                 };
                 img.src = objectUrl;
             });
         } catch (error) {
-            throw new Error(`无法加载图片: ${error.message}`);
+            throw new Error(`Unable to load image: ${error.message}`);
         }
     }
 
@@ -253,7 +253,7 @@ class ImageProcessor {
 
         } catch (error) {
             console.error('Image processing error:', error);
-            throw new Error(`图片处理失败: ${error.message}`);
+            throw new Error(`Image processing failed: ${error.message}`);
         }
     }
 
@@ -358,7 +358,7 @@ class ImageProcessor {
         const { width, height } = imageData;
         const data = imageData.data;
 
-        console.log(`生成像素级网格: ${width}x${height}, 调色板颜色数量: ${palette.length}`);
+        console.log(`Generating pixel-level grid: ${width}x${height}, palette color count: ${palette.length}`);
 
         const grid = [];
         let validPixels = 0; // Non-transparent, colorable pixels
@@ -439,7 +439,7 @@ class ImageProcessor {
             grid.push(gridRow);
         }
 
-        console.log(`网格生成完成: 总像素 ${width * height}, 有效(不透明)像素 ${validPixels}, 透明像素 ${transparentPixels}`);
+        console.log(`Grid generation completed: total pixels ${width * height}, valid (opaque) pixels ${validPixels}, transparent pixels ${transparentPixels}`);
         return grid;
     }
 
@@ -451,7 +451,7 @@ class ImageProcessor {
      */
     findClosestPaletteColor(pixelColor, palette) {
         if (!palette || palette.length === 0) {
-            console.error('调色板为空');
+            console.error('Palette is empty');
             return null;
         }
 
@@ -460,7 +460,7 @@ class ImageProcessor {
         
         for (const paletteItem of palette) {
             if (!paletteItem || !paletteItem.color) {
-                console.warn('无效的调色板项:', paletteItem);
+                console.warn('Invalid palette item:', paletteItem);
                 continue;
             }
             
@@ -544,18 +544,18 @@ class ImageProcessor {
 
         if (!file) {
             result.valid = false;
-            result.errors.push('请选择一个文件');
+            result.errors.push('Please select a file');
             return result;
         }
 
         if (!allowedTypes.includes(file.type.toLowerCase())) {
             result.valid = false;
-            result.errors.push('不支持的文件格式，请选择 JPG、PNG、GIF 或 WebP 格式的图片');
+            result.errors.push('Unsupported file format, please select JPG, PNG, GIF, or WebP format images');
         }
 
         if (file.size > maxSize) {
             result.valid = false;
-            result.errors.push('文件大小不能超过 10MB');
+            result.errors.push('File size cannot exceed 10MB');
         }
 
         return result;

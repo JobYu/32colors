@@ -63,7 +63,7 @@ class GameEngine {
             this.startAutoSave();
         }
         
-        Utils.showNotification('游戏初始化完成！', 'success');
+        Utils.showNotification('Game initialization completed!', 'success');
     }
 
     /**
@@ -113,7 +113,7 @@ class GameEngine {
      */
     startGame() {
         if (!this.gameData) {
-            Utils.showNotification('请先生成游戏！', 'warning');
+            Utils.showNotification('Please generate a game first!', 'warning');
             return;
         }
         
@@ -127,7 +127,7 @@ class GameEngine {
         this.startTimer();
         this.updateProgress();
         
-        Utils.showNotification('游戏开始！', 'info');
+        Utils.showNotification('Game started!', 'info');
     }
 
     /**
@@ -136,7 +136,7 @@ class GameEngine {
     pauseGame() {
         this.gameState.isPaused = true;
         this.stopTimer();
-        Utils.showNotification('游戏已暂停', 'info');
+        Utils.showNotification('Game paused', 'info');
     }
 
     /**
@@ -145,7 +145,7 @@ class GameEngine {
     resumeGame() {
         this.gameState.isPaused = false;
         this.startTimer();
-        Utils.showNotification('游戏已恢复', 'info');
+        Utils.showNotification('Game resumed', 'info');
     }
 
     /**
@@ -294,7 +294,7 @@ class GameEngine {
         // 清除保存的进度
         this.clearSavedProgress();
         
-        Utils.showNotification('🎉 恭喜完成游戏！', 'success', 5000);
+        Utils.showNotification('🎉 Congratulations on completing the game!', 'success', 5000);
     }
 
     /**
@@ -305,7 +305,7 @@ class GameEngine {
         const now = Date.now();
         if (now - this.lastHintTime < this.settings.hintCooldown) {
             const remaining = Math.ceil((this.settings.hintCooldown - (now - this.lastHintTime)) / 1000);
-            Utils.showNotification(`提示冷却中，还需等待 ${remaining} 秒`, 'warning');
+            Utils.showNotification(`Hint cooling down, please wait ${remaining} seconds`, 'warning');
             return null;
         }
         
@@ -335,7 +335,7 @@ class GameEngine {
         this.gameState.currentHint = hintCell;
         this.lastHintTime = now;
         
-        Utils.showNotification(`提示：寻找数字 ${hintCell.number}`, 'info');
+        Utils.showNotification(`Hint: Look for number ${hintCell.number}`, 'info');
         
         return hintCell;
     }
@@ -372,7 +372,7 @@ class GameEngine {
         }
         
         if (filledCount > 0) {
-            Utils.showNotification(`自动填充了 ${filledCount} 个数字 ${number} 的区域`, 'success');
+            Utils.showNotification(`Auto-filled ${filledCount} areas with number ${number}`, 'success');
         }
         
         return filledCount;
@@ -454,7 +454,7 @@ class GameEngine {
         };
         
         Utils.storage.set('colorByNumbers_progress', saveData);
-        Utils.showNotification('进度已保存', 'success');
+        Utils.showNotification('Progress saved', 'success');
     }
 
     /**
@@ -474,7 +474,7 @@ class GameEngine {
                 // 重新计算完成的单元格数量
                 this.recalculateProgress();
                 
-                Utils.showNotification('已加载保存的进度', 'info');
+                Utils.showNotification('Saved progress loaded', 'info');
                 return true;
             } else {
                 // 清除过期的存档

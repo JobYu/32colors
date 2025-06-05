@@ -551,43 +551,228 @@
 /* 深色模式支持 */
 @media (prefers-color-scheme: dark) {
     body {
-        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        color: #e0e0e0;
     }
     
+    /* 主要容器和面板 */
     .input-section,
     .canvas-container,
     .color-legend,
     .game-controls,
     .game-info,
-    .modal-content {
-        background: #34495e;
-        color: #ecf0f1;
+    .modal-content,
+    .game-top-controls {
+        background: #2d2d2d;
+        color: #e0e0e0;
+        border-color: #444444;
     }
     
+    /* 画布容器 */
     .canvas-wrapper {
-        background: #2c3e50;
-        border-color: #34495e;
+        background: #1a1a1a;
+        border-color: #444444;
     }
     
+    /* 表单输入元素 */
     .url-input input,
-    .settings-group select {
-        background: #2c3e50;
-        color: #ecf0f1;
-        border-color: #34495e;
+    .settings-group select,
+    .filter-select {
+        background: #1a1a1a;
+        color: #e0e0e0;
+        border-color: #444444;
     }
     
-    .canvas-controls button {
-        background: #2c3e50;
-        border-color: #34495e;
-        color: #ecf0f1;
+    .url-input input:focus,
+    .filter-select:focus {
+        border-color: #667eea;
     }
     
-    .info-item {
-        border-bottom-color: #34495e;
+    /* 按钮元素 */
+    .canvas-controls button,
+    .control-btn,
+    .control-btn.compact {
+        background: #1a1a1a;
+        border-color: #444444;
+        color: #e0e0e0;
+    }
+    
+    .control-btn:hover,
+    .canvas-controls button:hover {
+        background: #333333;
+        border-color: #666666;
+    }
+    
+    /* 导航按钮 */
+    .nav-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #e0e0e0;
+    }
+    
+    .nav-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .nav-btn.active {
+        background: rgba(255, 255, 255, 0.9);
+        color: #1a1a1a;
+    }
+    
+    /* 文字和标签 */
+    .settings-group label,
+    .filter-group label,
+    .file-name,
+    .gallery-item span,
+    .gallery-placeholder {
+        color: #b0b0b0;
+    }
+    
+    /* 颜色图例 */
+    .legend-item {
+        background: #1a1a1a;
+        border-color: #444444;
+        color: #e0e0e0;
     }
     
     .legend-item:hover {
+        background: #333333;
+    }
+    
+    .legend-item.highlighted {
         background: #2c3e50;
+        border-color: #667eea;
+    }
+    
+    .legend-placeholder {
+        color: #888888;
+    }
+    
+    /* 信息项目 */
+    .info-item {
+        border-bottom-color: #444444;
+        color: #e0e0e0;
+    }
+    
+    .info-item span:first-child {
+        color: #b0b0b0;
+    }
+    
+    .info-item span:last-child {
+        color: #e0e0e0;
+    }
+    
+    /* 画廊相关 */
+    .gallery-section h2,
+    .gallery-section h3,
+    .gallery-category-section h4 {
+        color: #e0e0e0;
+    }
+    
+    .gallery-item {
+        background: #2d2d2d;
+        border-color: #444444;
+    }
+    
+    .gallery-item:hover {
+        background: #333333;
+        border-color: #666666;
+    }
+    
+    /* 删除按钮 */
+    .delete-btn {
+        background: rgba(255, 82, 82, 0.8);
+        color: white;
+    }
+    
+    .delete-btn:hover {
+        background: rgba(255, 82, 82, 1);
+    }
+    
+    /* 模态框 */
+    .modal {
+        background: rgba(0, 0, 0, 0.8);
+    }
+    
+    .modal-content h2 {
+        color: #e0e0e0;
+    }
+    
+    .modal-content p {
+        color: #b0b0b0;
+    }
+    
+    /* 进度条 */
+    .progress-bar {
+        background: #1a1a1a;
+    }
+    
+    .progress-text {
+        color: #e0e0e0;
+    }
+    
+    /* 移动端指引 */
+    .mobile-instructions {
+        background: rgba(33, 150, 243, 0.1);
+        border-color: rgba(33, 150, 243, 0.3);
+        color: #64b5f6;
+    }
+    
+    /* 滚动条 */
+    .legend-container::-webkit-scrollbar-track {
+        background: #1a1a1a;
+    }
+    
+    .legend-container::-webkit-scrollbar-thumb {
+        background: #444444;
+    }
+    
+    .legend-container::-webkit-scrollbar-thumb:hover {
+        background: #666666;
+    }
+    
+    /* 页脚在深色模式下保持白色 */
+    .footer {
+        color: #e0e0e0;
+        opacity: 0.9;
+    }
+    
+    /* 状态指示器 */
+    .status-indicator {
+        background: rgba(45, 45, 45, 0.95);
+        color: #e0e0e0;
+    }
+    
+    /* 用户画廊状态颜色调整 */
+    .user-gallery-item.completed {
+        border-color: #4ade80;
+        background-color: rgba(74, 222, 128, 0.1);
+    }
+    
+    .user-gallery-item.incomplete {
+        border-color: #fbbf24;
+        background-color: rgba(251, 191, 36, 0.1);
+    }
+    
+    /* 加载覆盖层 */
+    .loading-overlay {
+        background: rgba(26, 26, 26, 0.9);
+        color: #e0e0e0;
+    }
+    
+    /* 文件名提示文字 */
+    .file-name {
+        color: #a0a0a0;
+    }
+    
+    /* 颜色数字和计数 */
+    .color-number {
+        color: #e0e0e0;
+    }
+    
+    .color-count {
+        color: #a0a0a0;
     }
 }
 

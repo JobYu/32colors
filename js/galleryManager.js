@@ -30,10 +30,10 @@ class GalleryManager {
             await this._processManifest(manifest);
             this.initialized = true;
             console.log('GalleryManager initialized successfully.');
-            Utils.showNotification('图库加载成功!', 'success');
+            Utils.showNotification('Gallery loaded successfully!', 'success');
         } catch (error) {
             console.error('Error initializing GalleryManager:', error);
-            Utils.showNotification(`图库加载失败: ${error.message}`, 'error');
+            Utils.showNotification(`Gallery loading failed: ${error.message}`, 'error');
             // Potentially re-throw or handle more gracefully depending on app requirements
         }
     }
