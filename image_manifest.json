@@ -36,39 +36,6 @@
         { "name": "Emoji 31", "path": "assets/sample-images/emoji31.png" },
         { "name": "Emoji 32", "path": "assets/sample-images/emoji32.png" }
       ]
-    },
-    {
-      "name": "minecraft",
-      "images": [
-        { "name": "Minecraft 1", "path": "assets/others/Minecraft1.png" },
-        { "name": "Minecraft 2", "path": "assets/others/Minecraft2.png" },
-        { "name": "Minecraft 3", "path": "assets/others/Minecraft3.png" },
-        { "name": "Minecraft 4", "path": "assets/others/Minecraft4.png" }
-      ]
-    },
-    {
-      "name": "weapons",
-      "images": [
-        { "name": "Weapon 1", "path": "assets/others/weapon1.png" },
-        { "name": "Weapon 2", "path": "assets/others/weapon2.png" },
-        { "name": "Weapon 3", "path": "assets/others/weapon3.png" },
-        { "name": "Weapon 4", "path": "assets/others/weapon4.png" },
-        { "name": "Gun", "path": "assets/others/gun.png" }
-      ]
-    },
-    {
-      "name": "characters",
-      "images": [
-        { "name": "1Bit Girl", "path": "assets/others/1bitgirl.png" },
-        { "name": "Rabbit", "path": "assets/others/rabbit.png" }
-      ]
-    },
-    {
-      "name": "objects",
-      "images": [
-        { "name": "Gem", "path": "assets/others/gem.png" },
-        { "name": "Notebook", "path": "assets/others/notebook.png" }
-      ]
     }
   ]
 } 
