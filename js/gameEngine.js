@@ -96,13 +96,16 @@ class GameEngine {
         
         for (let row = 0; row < gameGrid.length; row++) {
             for (let col = 0; col < gameGrid[row].length; col++) {
-                if (gameGrid[row][col]) {
+                const cell = gameGrid[row][col];
+                // 只计算非透明的单元格，因为只有这些需要填色
+                if (cell && !cell.isTransparent) {
                     total++;
                 }
             }
         }
         
         this.gameState.totalCells = total;
+        console.log(`[GameEngine Debug] Total fillable cells calculated: ${total}`);
     }
 
     /**
@@ -494,13 +497,15 @@ class GameEngine {
         for (let row = 0; row < gameGrid.length; row++) {
             for (let col = 0; col < gameGrid[row].length; col++) {
                 const cell = gameGrid[row][col];
-                if (cell && cell.revealed) {
+                // 只计算非透明且已填充的单元格
+                if (cell && !cell.isTransparent && cell.revealed) {
                     completed++;
                 }
             }
         }
         
         this.gameState.completedCells = completed;
+        console.log(`[GameEngine Debug] Recalculated progress: ${completed} completed cells`);
     }
 
     /**
@@ -576,7 +581,8 @@ class GameEngine {
         for (let row = 0; row < gameGrid.length; row++) {
             for (let col = 0; col < gameGrid[row].length; col++) {
                 const cell = gameGrid[row][col];
-                if (cell) {
+                // 只统计非透明单元格
+                if (cell && !cell.isTransparent) {
                     const colorStat = colorStats.find(stat => stat.number === cell.number);
                     if (colorStat) {
                         colorStat.totalCells++;

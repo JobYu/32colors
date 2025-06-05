@@ -11,6 +11,9 @@ body {
     color: #333;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
+    -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */
+    scroll-behavior: smooth; /* 平滑滚动 */
+    position: relative;
 }
 
 .container {
@@ -35,6 +38,38 @@ body {
 .header p {
     font-size: 1.1rem;
     opacity: 0.9;
+}
+
+/* 导航菜单样式 */
+.navigation {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.nav-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+.nav-btn.active {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border-color: rgba(255, 255, 255, 0.9);
 }
 
 /* 输入区域样式 */
@@ -378,13 +413,51 @@ body {
     font-weight: 500;
 }
 
+/* 紧凑型按钮样式 */
+.control-btn.compact {
+    width: auto;
+    min-width: 80px;
+    padding: 10px 16px;
+    font-size: 14px;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    display: inline-block;
+}
+
+/* 游戏控制区域使用flex布局 */
+.game-controls {
+    display: flex;
+    flex-direction: column;
+}
+
+.game-controls h3 {
+    margin-bottom: 15px;
+}
+
+.game-controls .control-btn.compact {
+    margin-right: 8px;
+    margin-bottom: 8px;
+}
+
+.game-controls .control-btn.compact:last-child {
+    margin-right: 0;
+}
+
+/* 油漆桶激活状态 */
+.control-btn.bucket-active {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    box-shadow: 0 0 20px rgba(40, 167, 69, 0.5);
+    animation: bucket-pulse 2s infinite;
+}
+
+@keyframes bucket-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
 .control-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
-}
-
-.control-btn:last-child {
-    margin-bottom: 0;
 }
 
 /* 游戏信息 */
@@ -569,12 +642,11 @@ body {
 }
 
 .gallery-section h2 {
-    margin-top: 0;
+    color: white;
     margin-bottom: 20px;
-    color: #2c3e50;
-    font-size: 1.6em;
-    border-bottom: 2px solid #e0e0e0;
-    padding-bottom: 10px;
+    font-size: 1.8rem;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    text-align: center;
 }
 
 .gallery-section h3 {
@@ -619,7 +691,8 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start; /* Align items to start, allow image to take space, name follows */
-    vertical-align: top; 
+    vertical-align: top;
+    position: relative; /* For status indicator positioning */
 }
 
 .gallery-item:hover {
@@ -647,6 +720,32 @@ body {
     word-wrap: break-word;
 }
 
+/* User Gallery Item Status Styles */
+.user-gallery-item.completed {
+    border-color: #28a745;
+    background-color: #f8fff9;
+}
+
+.user-gallery-item.incomplete {
+    border-color: #ffc107;
+    background-color: #fffef8;
+}
+
+.status-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
 .gallery-placeholder {
     color: #777;
     font-style: italic;
@@ -654,4 +753,45 @@ body {
     text-align: center;
     background-color: #f9f9f9;
     border-radius: 6px;
+}
+
+/* Gallery filter styles */
+.gallery-filters {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-group label {
+    font-weight: 500;
+    color: #333;
+    white-space: nowrap;
+}
+
+.filter-select {
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+    min-width: 120px;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.filter-select:hover {
+    border-color: #999;
 } 

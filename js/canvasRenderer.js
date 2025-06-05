@@ -337,15 +337,15 @@ class CanvasRenderer {
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         
-        // 添加文字描边以提高可读性，描边宽度也需要根据缩放调整
-        this.ctx.strokeStyle = '#ffffff';
-        this.ctx.lineWidth = Math.max(0.5, fontSize / 8);
+        // 移除白色描边以简化数字显示
+        // this.ctx.strokeStyle = '#ffffff';
+        // this.ctx.lineWidth = Math.max(0.5, fontSize / 8);
         
-        // 绘制数字
+        // 绘制数字（无描边）
         const centerX = x + width / 2;
         const centerY = y + height / 2;
         
-        this.ctx.strokeText(number.toString(), centerX, centerY);
+        // this.ctx.strokeText(number.toString(), centerX, centerY);
         this.ctx.fillText(number.toString(), centerX, centerY);
     }
 
@@ -627,13 +627,16 @@ class CanvasRenderer {
     /**
      * 导出当前游戏画面为图片
      * @param {number} scale - 导出图片的缩放比例
+     * @param {boolean} showGrid - 是否显示网格线
      * @returns {string} Data URL of the exported image
      */
-    exportImage(scale = 1) {
+    exportImage(scale = 1, showGrid = false) {
         if (!this.gameData) {
             console.error('No game data to export.');
             return null;
         }
+
+        console.log(`[CanvasRenderer] Exporting image with scale=${scale}, showGrid=${showGrid}`);
 
         const { dimensions } = this.gameData;
         const exportCanvas = document.createElement('canvas');
@@ -650,8 +653,9 @@ class CanvasRenderer {
 
         // Render the game grid onto the export canvas
         // Make sure to use a version of render that respects transparency
-        this.renderFullGameGrid(exportCtx, true); // Pass a flag to indicate export context
+        this.renderFullGameGrid(exportCtx, true, showGrid, scale); // Pass scale for grid line width calculation
 
+        console.log(`[CanvasRenderer] Export completed. Canvas size: ${exportCanvas.width}x${exportCanvas.height}`);
         return exportCanvas.toDataURL('image/png');
     }
 
@@ -659,8 +663,10 @@ class CanvasRenderer {
      * 渲染完整的游戏网格到指定的上下文（用于导出）
      * @param {CanvasRenderingContext2D} ctx - 目标画布的2D上下文
      * @param {boolean} isExporting - Flag to indicate if this is for export (to handle transparency)
+     * @param {boolean} showGrid - 是否显示网格线
+     * @param {number} exportScale - 导出缩放比例，用于调整网格线宽度
      */
-    renderFullGameGrid(ctx, isExporting = false) {
+    renderFullGameGrid(ctx, isExporting = false, showGrid = false, exportScale = 1) {
         const { gameGrid, dimensions } = this.gameData;
 
         // If not exporting, we might draw a white background first (as currently done in renderGameGrid)
@@ -674,7 +680,7 @@ class CanvasRenderer {
             for (let col = 0; col < gameGrid[0].length; col++) {
                 if (gameGrid[row] && gameGrid[row][col]) {
                     const cell = gameGrid[row][col];
-                    this.renderPixelCellForExport(ctx, cell, isExporting);
+                    this.renderPixelCellForExport(ctx, cell, isExporting, showGrid, exportScale);
                 }
             }
         }
@@ -685,8 +691,10 @@ class CanvasRenderer {
      * @param {CanvasRenderingContext2D} ctx - 目标画布的2D上下文
      * @param {object} cell - 网格单元数据
      * @param {boolean} isExporting - Flag to indicate if this is for export (always true here)
+     * @param {boolean} showGrid - 是否显示网格线
+     * @param {number} exportScale - 导出缩放比例，用于调整网格线宽度
      */
-    renderPixelCellForExport(ctx, cell, isExporting = true) { // isExporting is effectively always true here
+    renderPixelCellForExport(ctx, cell, isExporting = true, showGrid = false, exportScale = 1) { // isExporting is effectively always true here
         if (!cell) return;
 
         if (cell.isTransparent) {
@@ -717,6 +725,21 @@ class CanvasRenderer {
             // If they needed a placeholder color, it would be drawn here.
             // For now, unrevealed non-transparent cells in an export will be transparent.
             // ctx.clearRect(x, y, width, height); // Or simply do nothing if canvas is already clear.
+        }
+        
+        // Draw grid lines if showGrid is enabled
+        if (showGrid) {
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)'; // 15% opacity as requested
+            
+            // Use fixed 0.1px line width as requested by user
+            ctx.lineWidth = 0.1;
+            ctx.strokeRect(x, y, width, height);
+            
+            // Debug: Log grid drawing details for first few cells
+            if (x < 3 && y < 3) {
+                const actualPixelSize = width * exportScale;
+                console.log(`[CanvasRenderer] Grid cell (${x}, ${y}): pixelSize=${actualPixelSize}px, lineWidth=0.1px, exportScale=${exportScale}, coverage=${((0.2/actualPixelSize)*100).toFixed(1)}%`);
+            }
         }
     }
 

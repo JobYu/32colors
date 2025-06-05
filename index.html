@@ -12,44 +12,67 @@
         <!-- 头部标题 -->
         <header class="header">
             <h1>🎨 Color by Numbers</h1>
-            <p>将您的图片转换为像素级数字填色游戏</p>
+            <p>将像素画作品转换为像素级数字填色游戏</p>
+            
+            <!-- 导航菜单 -->
+            <nav class="navigation">
+                <button id="homeNavBtn" class="nav-btn active">🏠 首页</button>
+                <button id="galleryNavBtn" class="nav-btn">🌟 我的画廊</button>
+            </nav>
         </header>
 
         <!-- 首页内容 -->
         <div id="homePage">
-            <!-- 图片输入区域 -->
-            <section class="input-section">
-                <div class="input-group">
-                    <div class="file-upload">
-                        <label for="imageLoader" class="upload-btn">
-                            📁 选择图片文件
-                        </label>
-                        <input type="file" id="imageLoader" accept="image/*" style="display: none;">
-                        <span class="file-name" id="fileName">未选择文件</span>
-                    </div>
-                </div>
-            </section>
-
             <!-- 内置图库区域 -->
             <section class="gallery-section" id="builtInGalleryContainer">
-                <h2>🖼️ 内置图库</h2>
+                
+                
+                <!-- 筛选器控件 -->
+                <div class="gallery-filters">
+                    <div class="filter-group">
+                        <label for="sizeFilter">按尺寸筛选：</label>
+                        <select id="sizeFilter" class="filter-select">
+                            <option value="all">所有尺寸</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 分类显示 -->
                 <div id="folderCategoriesContainer">
                     <!-- Folder categories will be rendered here by js/main.js -->
                 </div>
-                <div id="sizeCategoriesContainer">
-                    <!-- Size categories will be rendered here by js/main.js -->
+                
+                <!-- 筛选后的图片显示区域 -->
+                <div id="filteredImagesContainer">
+                    <!-- Filtered images will be rendered here when filter is applied -->
                 </div>
             </section>
+                    <!-- 图片输入区域 -->
+                    <section class="input-section">
+                        <div class="input-group">
+                            <div class="file-upload">
+                                <label for="imageLoader" class="upload-btn">
+                                    打开像素画图片
+                                </label>
+                                <input type="file" id="imageLoader" accept="image/*" style="display: none;">
+                                <span class="file-name" id="fileName">仅支持128色以内的像素画。上传的图片只会保存在本机，不会上传服务器。</span>
+                            </div>
+                        </div>
+                    </section>
+        </div> <!-- End of homePage -->
 
-            <!-- 用户画廊区域 -->
+        <!-- 我的画廊页面 (独立页面) -->
+        <div id="myGalleryPage" style="display: none;">
             <section class="gallery-section" id="userGalleryContainer">
-                <h2>🌟 我的画廊</h2>
                 <p class="gallery-placeholder">您完成的作品将在这里展示。</p>
             </section>
-        </div> <!-- End of homePage -->
+        </div> <!-- End of myGalleryPage -->
 
         <!-- 游戏页面内容 (初始隐藏) -->
         <div id="gamePage" style="display: none;">
+            <!-- 游戏页面顶部锚点（用于移动端滚动定位） -->
+            <div id="gamePageTop" style="position: absolute; top: 0;"></div>
+            
             <main class="game-area">
                 <!-- 左侧游戏画布 -->
                 <div class="canvas-container">
@@ -87,11 +110,11 @@
                     
                     <div class="game-controls">
                         <h3>🎮 游戏控制</h3>
-                        <button id="resetGameBtn" class="control-btn">🔄 重新开始</button>
-                        <button id="autoFillBtn" class="control-btn">🤖 自动填充</button>
-                        <button id="saveProgressBtn" class="control-btn">💾 保存进度</button>
+                        <button id="resetGameBtn" class="control-btn compact">🔄 重玩</button>
+                        <button id="autoFillBtn" class="control-btn compact">🪣 油漆桶</button>
+                        <button id="saveProgressBtn" class="control-btn compact" style="display: none;">💾 保存进度</button>
                         <!-- Add a button to go back to home/gallery -->
-                        <button id="backToHomeBtn" class="control-btn secondary-action">🖼️ 返回图库</button>
+                        <button id="backToHomeBtn" class="control-btn compact secondary-action">← 返回</button>
                     </div>
                     
                     <div class="game-info">
@@ -137,12 +160,22 @@
     </div>
 
     <!-- JavaScript 模块 -->
-    <script src="js/utils.js"></script>
-    <script src="js/colorQuantizer.js"></script>
-    <script src="js/imageProcessor.js"></script>
-    <script src="js/galleryManager.js"></script>
-    <script src="js/canvasRenderer.js"></script>
-    <script src="js/gameEngine.js"></script>
-    <script src="js/main.js"></script>
+    <script>
+        // 检查浏览器兼容性
+        if (!window.Promise || !Array.prototype.includes || !Object.assign) {
+            alert('您的浏览器版本过低，请升级到较新版本的Chrome、Firefox、Safari或Edge浏览器。\n\nYour browser is too old. Please upgrade to a newer version of Chrome, Firefox, Safari, or Edge.');
+        }
+    </script>
+    
+    <!-- 浏览器兼容性补丁 -->
+    <script src="js/polyfills.js"></script>
+    
+    <script defer src="js/utils.js"></script>
+    <script defer src="js/colorQuantizer.js"></script>
+    <script defer src="js/imageProcessor.js"></script>
+    <script defer src="js/galleryManager.js"></script>
+    <script defer src="js/canvasRenderer.js"></script>
+    <script defer src="js/gameEngine.js"></script>
+    <script defer src="js/main.js"></script>
 </body>
 </html> 

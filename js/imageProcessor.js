@@ -49,15 +49,42 @@ class ImageProcessor {
             const img = new Image();
             img.crossOrigin = 'anonymous'; // 尝试跨域
             
-            img.onload = () => resolve(img);
+            // 添加缓存破坏参数，确保每次都重新加载图片
+            const cacheBustedUrl = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+            
+            img.onload = () => {
+                console.log('[ImageProcessor Debug] Image loaded successfully from URL:', url);
+                resolve(img);
+            };
             img.onerror = () => {
+                console.log('[ImageProcessor Debug] Direct load failed, trying proxy for URL:', url);
                 // 如果跨域失败，尝试通过代理加载
                 this.loadImageThroughProxy(url)
                     .then(resolve)
                     .catch(reject);
             };
             
-            img.src = url;
+            // 使用带缓存破坏参数的URL
+            img.src = cacheBustedUrl;
+        });
+    }
+
+    /**
+     * 从Data URL加载图片
+     * @param {string} dataUrl - Data URL字符串
+     * @returns {Promise<HTMLImageElement>} 加载的图片
+     */
+    loadImageFromDataUrl(dataUrl) {
+        return new Promise((resolve, reject) => {
+            if (!dataUrl || !dataUrl.startsWith('data:image/')) {
+                reject(new Error('无效的Data URL'));
+                return;
+            }
+
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error('Data URL图片加载失败'));
+            img.src = dataUrl;
         });
     }
 

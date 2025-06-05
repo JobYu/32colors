@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - 错误诊断</title>
+    <style>
+        body { font-family: monospace; margin: 20px; background: #f0f0f0; }
+        .error { color: red; background: #ffe6e6; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .success { color: green; background: #e6ffe6; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .info { color: blue; background: #e6f3ff; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        #output { max-height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: white; }
+    </style>
+</head>
+<body>
+    <h1>🐛 错误诊断工具</h1>
+    <p>这个页面将帮助诊断JavaScript加载问题</p>
+    
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+            output.appendChild(div);
+            console.log(message);
+        }
+        
+        // 捕获所有错误
+        window.addEventListener('error', (e) => {
+            log(`❌ 错误: ${e.message} (文件: ${e.filename}, 行: ${e.lineno})`, 'error');
+        });
+        
+        // 监听Promise错误
+        window.addEventListener('unhandledrejection', (e) => {
+            log(`❌ Promise错误: ${e.reason}`, 'error');
+        });
+        
+        // 基础功能测试
+        log('开始浏览器功能测试...', 'info');
+        
+        try {
+            eval('const test = () => {};');
+            log('✅ ES6箭头函数支持', 'success');
+        } catch (e) {
+            log('❌ ES6箭头函数不支持: ' + e.message, 'error');
+        }
+        
+        try {
+            eval('class Test {}');
+            log('✅ ES6类语法支持', 'success');
+        } catch (e) {
+            log('❌ ES6类语法不支持: ' + e.message, 'error');
+        }
+        
+        try {
+            eval('async function test() { await Promise.resolve(); }');
+            log('✅ async/await支持', 'success');
+        } catch (e) {
+            log('❌ async/await不支持: ' + e.message, 'error');
+        }
+        
+        // 逐个加载脚本并测试
+        const scripts = [
+            'js/polyfills.js',
+            'js/utils.js',
+            'js/colorQuantizer.js', 
+            'js/imageProcessor.js',
+            'js/galleryManager.js',
+            'js/canvasRenderer.js',
+            'js/gameEngine.js',
+            'js/main.js'
+        ];
+        
+        let currentScript = 0;
+        
+        function loadNextScript() {
+            if (currentScript >= scripts.length) {
+                log('✅ 所有脚本加载完成', 'success');
+                return;
+            }
+            
+            const scriptPath = scripts[currentScript];
+            log(`正在加载: ${scriptPath}`, 'info');
+            
+            const script = document.createElement('script');
+            script.onload = () => {
+                log(`✅ ${scriptPath} 加载成功`, 'success');
+                currentScript++;
+                setTimeout(loadNextScript, 100); // 短暂延迟以捕获任何异步错误
+            };
+            script.onerror = (e) => {
+                log(`❌ ${scriptPath} 加载失败`, 'error');
+                currentScript++;
+                setTimeout(loadNextScript, 100);
+            };
+            script.src = scriptPath;
+            document.head.appendChild(script);
+        }
+        
+        // 开始加载
+        setTimeout(loadNextScript, 1000);
+    </script>
+</body>
+</html> 
