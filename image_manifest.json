@@ -1,7 +1,7 @@
 {
   "categories": [
     {
-      "name": "sample-images",
+      "name": "emoji",
       "images": [
         { "name": "Emoji 1", "path": "assets/sample-images/emoji1.png" },
         { "name": "Emoji 2", "path": "assets/sample-images/emoji2.png" },
@@ -18,7 +18,56 @@
         { "name": "Emoji 13", "path": "assets/sample-images/emoji13.png" },
         { "name": "Emoji 14", "path": "assets/sample-images/emoji14.png" },
         { "name": "Emoji 15", "path": "assets/sample-images/emoji15.png" },
-        { "name": "Emoji 16", "path": "assets/sample-images/emoji16.png" }
+        { "name": "Emoji 16", "path": "assets/sample-images/emoji16.png" },
+        { "name": "Emoji 17", "path": "assets/sample-images/emoji17.png" },
+        { "name": "Emoji 18", "path": "assets/sample-images/emoji18.png" },
+        { "name": "Emoji 19", "path": "assets/sample-images/emoji19.png" },
+        { "name": "Emoji 20", "path": "assets/sample-images/emoji20.png" },
+        { "name": "Emoji 21", "path": "assets/sample-images/emoji21.png" },
+        { "name": "Emoji 22", "path": "assets/sample-images/emoji22.png" },
+        { "name": "Emoji 23", "path": "assets/sample-images/emoji23.png" },
+        { "name": "Emoji 24", "path": "assets/sample-images/emoji24.png" },
+        { "name": "Emoji 25", "path": "assets/sample-images/emoji25.png" },
+        { "name": "Emoji 26", "path": "assets/sample-images/emoji26.png" },
+        { "name": "Emoji 27", "path": "assets/sample-images/emoji27.png" },
+        { "name": "Emoji 28", "path": "assets/sample-images/emoji28.png" },
+        { "name": "Emoji 29", "path": "assets/sample-images/emoji29.png" },
+        { "name": "Emoji 30", "path": "assets/sample-images/emoji30.png" },
+        { "name": "Emoji 31", "path": "assets/sample-images/emoji31.png" },
+        { "name": "Emoji 32", "path": "assets/sample-images/emoji32.png" }
+      ]
+    },
+    {
+      "name": "minecraft",
+      "images": [
+        { "name": "Minecraft 1", "path": "assets/others/Minecraft1.png" },
+        { "name": "Minecraft 2", "path": "assets/others/Minecraft2.png" },
+        { "name": "Minecraft 3", "path": "assets/others/Minecraft3.png" },
+        { "name": "Minecraft 4", "path": "assets/others/Minecraft4.png" }
+      ]
+    },
+    {
+      "name": "weapons",
+      "images": [
+        { "name": "Weapon 1", "path": "assets/others/weapon1.png" },
+        { "name": "Weapon 2", "path": "assets/others/weapon2.png" },
+        { "name": "Weapon 3", "path": "assets/others/weapon3.png" },
+        { "name": "Weapon 4", "path": "assets/others/weapon4.png" },
+        { "name": "Gun", "path": "assets/others/gun.png" }
+      ]
+    },
+    {
+      "name": "characters",
+      "images": [
+        { "name": "1Bit Girl", "path": "assets/others/1bitgirl.png" },
+        { "name": "Rabbit", "path": "assets/others/rabbit.png" }
+      ]
+    },
+    {
+      "name": "objects",
+      "images": [
+        { "name": "Gem", "path": "assets/others/gem.png" },
+        { "name": "Notebook", "path": "assets/others/notebook.png" }
       ]
     }
   ]

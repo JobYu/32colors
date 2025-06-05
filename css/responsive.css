@@ -11,7 +11,7 @@
     }
     
     .game-area {
-        grid-template-columns: 1fr 380px;
+        height: calc(100vh - 180px);
     }
 }
 
@@ -26,8 +26,8 @@
     }
     
     .game-area {
-        grid-template-columns: 1fr 320px;
-        gap: 20px;
+        height: calc(100vh - 200px);
+        gap: 15px;
     }
     
     .input-group {
@@ -43,22 +43,21 @@
 /* 平板设备 (768px - 991px) */
 @media (max-width: 991px) {
     .game-area {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-    
-    .sidebar {
-        order: -1;
-        flex-direction: row;
-        overflow-x: auto;
+        height: calc(100vh - 220px);
         gap: 15px;
     }
     
-    .color-legend,
-    .game-controls,
-    .game-info {
-        min-width: 280px;
-        flex-shrink: 0;
+    .game-top-controls {
+        padding: 15px;
+        gap: 15px;
+    }
+    
+    .game-top-controls .color-legend {
+        min-width: 250px;
+    }
+    
+    .game-top-controls .legend-container {
+        max-height: 120px;
     }
     
     .canvas-wrapper {
@@ -98,38 +97,68 @@
         margin-bottom: 5px;
     }
     
+    /* 隐藏手机端的放大镜控制按钮 */
     .canvas-controls {
-        flex-wrap: wrap;
-        gap: 8px;
+        display: none;
     }
     
-    .canvas-controls button {
-        flex: 1;
-        min-width: 60px;
-        padding: 10px 8px;
-        font-size: 12px;
+    .canvas-bottom-controls {
+        flex-direction: column;
+        gap: 10px;
     }
     
     .progress-container {
-        flex-direction: column;
+        width: 100%;
         gap: 10px;
         text-align: center;
     }
     
-    .sidebar {
+    .game-area {
+        height: calc(100vh - 250px);
+        min-height: 500px;
+    }
+    
+    .game-top-controls {
         flex-direction: column;
+        padding: 15px;
+        gap: 12px;
     }
     
-    .color-legend,
-    .game-controls,
-    .game-info {
+    .game-top-controls .color-legend {
         min-width: auto;
+        order: 2;
     }
     
-    /* 隐藏颜色图例和游戏信息，节省移动端空间 */
-    .color-legend,
-    .game-info {
+    .game-top-controls .game-controls {
+        order: 1;
+        justify-content: center;
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        flex-wrap: nowrap;
+    }
+    
+    .game-top-controls .legend-container {
+        max-height: 100px;
+        gap: 6px;
+    }
+    
+    .game-top-controls .legend-item {
+        padding: 4px 8px;
+        font-size: 0.9rem;
+    }
+    
+    /* 隐藏手机模式下颜色图例的数量 */
+    .game-top-controls .color-count {
         display: none;
+    }
+    
+    /* 确保控制按钮在同一行 */
+    .game-top-controls .game-controls {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        flex-wrap: nowrap;
     }
     
     .legend-container {
@@ -207,14 +236,9 @@
         max-height: 400px;
     }
     
+    /* 隐藏超小屏幕的放大镜控制按钮 */
     .canvas-controls {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 5px;
-    }
-    
-    .canvas-controls button {
-        padding: 12px 6px;
-        font-size: 11px;
+        display: none;
     }
     
     .color-legend h3,
@@ -224,10 +248,44 @@
         margin-bottom: 10px;
     }
     
-    /* 确保超小屏幕也隐藏颜色图例和游戏信息 */
-    .color-legend,
-    .game-info {
+    .game-area {
+        height: calc(100vh - 280px);
+        min-height: 400px;
+    }
+    
+    .game-top-controls {
+        padding: 12px;
+        gap: 12px;
+    }
+    
+    .game-top-controls .legend-container {
+        max-height: 80px;
+        padding: 8px;
+        gap: 4px;
+    }
+    
+    .game-top-controls .legend-item {
+        padding: 3px 6px;
+        font-size: 0.8rem;
+    }
+    
+    /* 隐藏超小屏幕颜色图例的数量 */
+    .game-top-controls .color-count {
         display: none;
+    }
+    
+    /* 超小屏幕控制按钮同行排列 */
+    .game-top-controls .game-controls {
+        display: flex;
+        flex-direction: row;
+        gap: 6px;
+        flex-wrap: nowrap;
+    }
+    
+    .game-top-controls .control-btn.compact {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+        min-width: 60px;
     }
     
     .legend-item {
@@ -286,15 +344,14 @@
         max-height: 300px;
     }
     
-    .sidebar {
-        flex-direction: row;
-        overflow-x: auto;
+    .game-top-controls {
+        padding: 12px;
+        gap: 12px;
     }
     
-    .color-legend,
-    .game-controls,
-    .game-info {
-        min-width: 250px;
+    .game-top-controls .legend-container {
+        max-height: 100px;
+        overflow-x: auto;
     }
     
     .legend-container {
@@ -323,8 +380,21 @@
     }
     
     .control-btn.compact {
-        min-width: 90px;
-        font-size: 14px;
+        min-width: 70px;
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+    
+    /* 触摸设备优化 */
+    .game-top-controls .color-count {
+        display: none;
+    }
+    
+    .game-top-controls .game-controls {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        flex-wrap: nowrap;
     }
     
     .legend-item {
@@ -334,6 +404,21 @@
     
     #gameCanvas {
         cursor: pointer;
+        /* 禁用iOS Safari的双击缩放 */
+        touch-action: none;
+        /* 禁用用户选择 */
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        /* 禁用iOS Safari的长按菜单 */
+        -webkit-touch-callout: none;
+    }
+    
+    .canvas-wrapper {
+        /* 确保画布容器也禁用默认触摸行为 */
+        touch-action: none;
+        overflow: hidden;
     }
     
     .canvas-controls button:hover,
@@ -351,6 +436,70 @@
     .load-btn:active,
     .generate-btn:active {
         transform: scale(0.98);
+    }
+    
+    /* 移动端游戏区域优化 */
+    .game-area {
+        gap: 10px;
+    }
+    
+    .canvas-container {
+        order: 1;
+        width: 100%;
+    }
+    
+    .sidebar {
+        order: 2;
+        width: 100%;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 10px 0;
+    }
+    
+    .color-legend,
+    .game-controls,
+    .game-info {
+        min-width: 280px;
+        margin-right: 15px;
+    }
+    
+    /* 隐藏触摸设备的放大镜控制按钮 */
+    .canvas-controls {
+        display: none;
+    }
+    
+    /* 移动端专用提示 */
+    .mobile-instructions {
+        display: block;
+        background: #e3f2fd;
+        border: 1px solid #2196f3;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 15px;
+        font-size: 14px;
+        color: #1976d2;
+    }
+    
+    .mobile-instructions .instructions-title {
+        font-weight: bold;
+        margin-bottom: 8px;
+        display: block;
+    }
+    
+    .mobile-instructions ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+    
+    .mobile-instructions li {
+        margin-bottom: 4px;
+    }
+}
+
+/* 桌面端隐藏移动端提示 */
+@media (hover: hover) and (pointer: fine) {
+    .mobile-instructions {
+        display: none;
     }
 }
 
@@ -442,71 +591,4 @@
     }
 }
 
-/* 移动设备游戏页面优化 */
-@media (max-width: 767px) {
-    /* 确保游戏页面在移动设备上正确显示在顶部 */
-    #gamePage {
-        padding-top: 0;
-        margin-top: 0;
-        min-height: 100vh;
-    }
-    
-    /* 游戏区域优化 */
-    .game-area {
-        padding-top: 0;
-        margin-top: 0;
-    }
-    
-    /* 画布容器在移动端的优化 */
-    .canvas-container {
-        margin-bottom: 15px;
-    }
-    
-    /* 确保侧边栏在移动端的正确显示 */
-    .sidebar {
-        padding: 0;
-        margin: 0;
-    }
-    
-    /* 再次确认隐藏颜色图例和游戏信息 */
-    .color-legend,
-    .game-info {
-        display: none !important;
-    }
-}
-
-/* 超小屏幕设备游戏页面优化 */
-@media (max-width: 575px) {
-    #gamePage {
-        padding: 5px;
-        margin: 0;
-    }
-    
-    .game-area {
-        gap: 10px;
-        padding: 0;
-        margin: 0;
-    }
-    
-    /* 画布在超小屏幕上的优化 */
-    .canvas-wrapper {
-        margin-bottom: 10px;
-    }
-    
-    /* 控制按钮区域优化 */
-    .canvas-controls {
-        margin-top: 10px;
-        margin-bottom: 10px;
-    }
-    
-    /* 进度条在移动端的优化 */
-    .progress-container {
-        margin: 10px 0;
-    }
-    
-    /* 确保超小屏幕也隐藏颜色图例和游戏信息 */
-    .color-legend,
-    .game-info {
-        display: none !important;
-    }
-} 
+ 

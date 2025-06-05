@@ -55,7 +55,7 @@
                                     打开像素画图片
                                 </label>
                                 <input type="file" id="imageLoader" accept="image/*" style="display: none;">
-                                <span class="file-name" id="fileName">仅支持128色以内的像素画。上传的图片只会保存在本机，不会上传服务器。</span>
+                                <span class="file-name" id="fileName">选择像素图片 (PNG/JPG格式，最大300×300像素，128色以内)。上传的图片只会保存在本机，不会上传服务器。</span>
                             </div>
                         </div>
                     </section>
@@ -74,7 +74,24 @@
             <div id="gamePageTop" style="position: absolute; top: 0;"></div>
             
             <main class="game-area">
-                <!-- 左侧游戏画布 -->
+                <!-- 上方控制区域 -->
+                <div class="game-top-controls">
+                    <!-- 颜色图例 -->
+                    <div class="color-legend">
+                        <div class="legend-container" id="legendContainer">
+                            <p class="legend-placeholder">生成游戏后显示颜色对应关系</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 游戏控制按钮 -->
+                    <div class="game-controls">
+                        <button id="resetGameBtn" class="control-btn compact">🔄 重玩</button>
+                        <button id="autoFillBtn" class="control-btn compact">🪣 油漆桶</button>
+                        <button id="saveProgressBtn" class="control-btn compact" style="display: none;">💾 保存进度</button>
+                    </div>
+                </div>
+
+                <!-- 游戏画布区域 -->
                 <div class="canvas-container">
                     <div class="canvas-wrapper">
                         <canvas id="gameCanvas"></canvas>
@@ -84,59 +101,44 @@
                         </div>
                     </div>
                     
-                    <!-- 画布控制按钮 -->
-                    <div class="canvas-controls">
-                        <button id="zoomInBtn" title="放大">🔍+</button>
-                        <button id="zoomOutBtn" title="缩小">🔍-</button>
-                    </div>
-                    
-                    <!-- 进度条 -->
-                    <div class="progress-container">
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="progressFill"></div>
+                    <!-- 画布控制和进度区域 -->
+                    <div class="canvas-bottom-controls">
+                        <!-- 画布控制按钮 -->
+                        <div class="canvas-controls">
+                            <button id="zoomInBtn" title="放大">🔍+</button>
+                            <button id="zoomOutBtn" title="缩小">🔍-</button>
                         </div>
-                        <span class="progress-text" id="progressText">0%</span>
+                        
+                        <!-- 进度条 -->
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <span class="progress-text" id="progressText">0%</span>
+                        </div>
                     </div>
                 </div>
-
-                <!-- 右侧颜色图例和控制面板 -->
-                <aside class="sidebar">
-                    <div class="color-legend">
-                        <h3>🎨 颜色图例</h3>
-                        <div class="legend-container" id="legendContainer">
-                            <p class="legend-placeholder">生成游戏后显示颜色对应关系</p>
-                        </div>
+                
+                <!-- 隐藏的游戏信息（保持DOM结构但不显示） -->
+                <div class="game-info" style="display: none;">
+                    <h3>📊 游戏信息</h3>
+                    <div class="info-item">
+                        <span>总区域:</span>
+                        <span id="totalAreas">0</span>
                     </div>
-                    
-                    <div class="game-controls">
-                        <h3>🎮 游戏控制</h3>
-                        <button id="resetGameBtn" class="control-btn compact">🔄 重玩</button>
-                        <button id="autoFillBtn" class="control-btn compact">🪣 油漆桶</button>
-                        <button id="saveProgressBtn" class="control-btn compact" style="display: none;">💾 保存进度</button>
-                        <!-- Add a button to go back to home/gallery -->
-                        <button id="backToHomeBtn" class="control-btn compact secondary-action">← 返回</button>
+                    <div class="info-item">
+                        <span>已完成:</span>
+                        <span id="completedAreas">0</span>
                     </div>
-                    
-                    <div class="game-info">
-                        <h3>📊 游戏信息</h3>
-                        <div class="info-item">
-                            <span>总区域:</span>
-                            <span id="totalAreas">0</span>
-                        </div>
-                        <div class="info-item">
-                            <span>已完成:</span>
-                            <span id="completedAreas">0</span>
-                        </div>
-                        <div class="info-item">
-                            <span>剩余:</span>
-                            <span id="remainingAreas">0</span>
-                        </div>
-                        <div class="info-item">
-                            <span>用时:</span>
-                            <span id="gameTime">00:00</span>
-                        </div>
+                    <div class="info-item">
+                        <span>剩余:</span>
+                        <span id="remainingAreas">0</span>
                     </div>
-                </aside>
+                    <div class="info-item">
+                        <span>用时:</span>
+                        <span id="gameTime">00:00</span>
+                    </div>
+                </div>
             </main>
         </div> <!-- End of gamePage -->
 

@@ -9,7 +9,7 @@ class ColorByNumbersApp {
         this.currentImageManifestPath = null; // Track built-in image path
         this.currentUploadedImageName = null; // Track uploaded image name
         this.isProcessing = false;
-        this.FILE_INPUT_HINT_TEXT = '选择像素图片 (推荐8×8至64×64像素)';
+        this.FILE_INPUT_HINT_TEXT = '选择像素图片 (PNG/JPG格式，最大300×300像素，128色以内)';
         
         // 油漆桶工具状态
         this.bucketTool = {
@@ -55,7 +55,6 @@ class ColorByNumbersApp {
             resetGameBtn: document.getElementById('resetGameBtn'),
             autoFillBtn: document.getElementById('autoFillBtn'),
             saveProgressBtn: document.getElementById('saveProgressBtn'),
-            backToHomeBtn: document.getElementById('backToHomeBtn'),
 
             // 模态框
             successModal: document.getElementById('successModal'),
@@ -102,7 +101,8 @@ class ColorByNumbersApp {
         const rect = container.getBoundingClientRect();
         
         const width = Math.floor(rect.width - 4); // 减去边框
-        const height = Math.floor(Math.max(400, rect.height - 4));
+        // 为新布局优化高度计算，确保画布能充分利用可用空间
+        const height = Math.floor(Math.max(300, rect.height - 4));
         
         canvasRenderer.setCanvasSize(width, height);
     }
@@ -118,11 +118,11 @@ class ColorByNumbersApp {
 
         // 画布控制
         this.elements.zoomInBtn.addEventListener('click', () => {
-            canvasRenderer.zoom(); // 使用默认的1.2倍放大
+            canvasRenderer.zoom(); // 使用默认的1.4倍放大
         });
 
         this.elements.zoomOutBtn.addEventListener('click', () => {
-            canvasRenderer.zoom(1 / canvasRenderer.settings.zoomFactor); // 缩小（1/1.2）
+            canvasRenderer.zoom(1 / canvasRenderer.settings.zoomFactor); // 缩小（1/1.4）
         });
 
         // 游戏控制
@@ -163,12 +163,7 @@ class ColorByNumbersApp {
             }
         });
 
-        // New button event listener
-        if (this.elements.backToHomeBtn) { // Check if element exists
-            this.elements.backToHomeBtn.addEventListener('click', () => {
-                this.showHomePage();
-            });
-        }
+
 
         // Gallery filter event listener
         if (this.elements.sizeFilter) {
@@ -231,19 +226,38 @@ class ColorByNumbersApp {
         this.currentImageManifestPath = null; // Clear manifest path for uploaded files
         this.currentUploadedImageName = null; // Reset before attempting to set
 
+        // 基本文件验证
         const validation = imageProcessor.validateImageFile(file);
         if (!validation.valid) {
             Utils.showNotification(validation.errors.join(', '), 'error');
-            // currentUploadedImageName remains null
             this.elements.fileName.textContent = this.FILE_INPUT_HINT_TEXT;
+            this.resetFileInput();
+            return;
+        }
+
+        // 检测GIF动图
+        if (file.type === 'image/gif') {
+            Utils.showNotification('暂不支持GIF动态图片，请选择PNG或JPG格式的像素图片', 'error');
+            this.elements.fileName.textContent = this.FILE_INPUT_HINT_TEXT;
+            this.resetFileInput();
             return;
         }
 
         this.elements.fileName.textContent = file.name;
-        this.currentUploadedImageName = file.name; // Store the uploaded file name
 
         try {
             const loadedImage = await imageProcessor.loadImageFromFile(file);
+            
+            // 检查图片尺寸
+            const imageInfo = imageProcessor.getImageInfo(loadedImage);
+            if (imageInfo.width > 300 || imageInfo.height > 300) {
+                Utils.showNotification(`图片尺寸过大 (${imageInfo.width}×${imageInfo.height})，请选择300×300像素以内的图片`, 'error');
+                this.elements.fileName.textContent = this.FILE_INPUT_HINT_TEXT;
+                this.resetFileInput();
+                return;
+            }
+
+            this.currentUploadedImageName = file.name; // Store the uploaded file name
             this.currentImage = loadedImage; // Keep for potential other uses, but pass directly
             
             // 立即保存上传的图片到我的画廊
@@ -257,7 +271,19 @@ class ColorByNumbersApp {
             Utils.showNotification(error.message, 'error');
             // Reset to hint text on error
             this.elements.fileName.textContent = this.FILE_INPUT_HINT_TEXT;
+            this.resetFileInput();
         }
+    }
+
+    /**
+     * 重置文件输入框
+     */
+    resetFileInput() {
+        if (this.elements.imageLoader) {
+            this.elements.imageLoader.value = '';
+        }
+        this.currentUploadedImageName = null;
+        this.currentImage = null;
     }
 
     /**
@@ -1548,7 +1574,10 @@ class ColorByNumbersApp {
         // Update navigation state
         this.updateNavigation('gallery');
         
-        // Render the user gallery content
+        // 清理无效的画廊条目
+        this.cleanupInvalidGalleryEntries();
+        
+        // Render the user gallery
         this.renderUserGallery();
         
         console.log("Switched to My Gallery Page");
@@ -1851,6 +1880,19 @@ class ColorByNumbersApp {
         galleryItem.appendChild(imgDisplay);
         galleryItem.appendChild(nameLabel);
         
+        // 为上传的图片添加删除按钮
+        if (imageEntry.type === 'uploaded') {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.innerHTML = '🗑️';
+            deleteBtn.title = '删除此图片';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // 防止触发图片点击事件
+                this.handleDeleteUserGalleryItem(imageEntry);
+            });
+            galleryItem.appendChild(deleteBtn);
+        }
+        
         galleryItem.addEventListener('click', () => this.handleUserGalleryItemClick(imageEntry));
         
         return galleryItem;
@@ -2105,6 +2147,83 @@ class ColorByNumbersApp {
         }
         
         return result;
+    }
+
+    /**
+     * 处理删除用户画廊中的图片
+     * @param {object} imageEntry - 要删除的图片条目
+     */
+    handleDeleteUserGalleryItem(imageEntry) {
+        // 确认删除
+        const confirmMessage = `确定要删除图片 "${imageEntry.name}" 吗？\n${imageEntry.isCompleted ? '已完成的作品' : '未完成的作品'}将被永久删除。`;
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        try {
+            // 获取现有的用户画廊数据
+            let userGallery = Utils.storage.get('userGallery', []);
+            
+            // 找到并删除对应的条目
+            const indexToDelete = userGallery.findIndex(item => 
+                item.id === imageEntry.id && item.type === 'uploaded'
+            );
+            
+            if (indexToDelete > -1) {
+                userGallery.splice(indexToDelete, 1);
+                Utils.storage.set('userGallery', userGallery);
+                
+                Utils.showNotification(`图片 "${imageEntry.name}" 已删除`, 'success');
+                
+                // 重新渲染用户画廊
+                this.renderUserGallery();
+            } else {
+                Utils.showNotification('删除失败：找不到对应的图片记录', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting user gallery item:', error);
+            Utils.showNotification('删除失败：发生错误', 'error');
+        }
+    }
+
+    /**
+     * 清理用户画廊中的无效条目
+     */
+    cleanupInvalidGalleryEntries() {
+        try {
+            let userGallery = Utils.storage.get('userGallery', []);
+            const originalLength = userGallery.length;
+            
+            // 过滤掉无效的条目
+            userGallery = userGallery.filter(item => {
+                // 检查必要字段是否存在
+                if (!item.id || !item.name || !item.type) {
+                    console.log('Removing invalid gallery item (missing required fields):', item);
+                    return false;
+                }
+                
+                // 检查尺寸是否有效
+                if (item.type === 'uploaded' && item.dimensions) {
+                    if (item.dimensions.width > 300 || item.dimensions.height > 300) {
+                        console.log('Removing oversized gallery item:', item.name, item.dimensions);
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            // 如果有清理的条目，保存更新后的画廊
+            if (userGallery.length !== originalLength) {
+                Utils.storage.set('userGallery', userGallery);
+                const cleanedCount = originalLength - userGallery.length;
+                console.log(`Cleaned up ${cleanedCount} invalid gallery entries`);
+                Utils.showNotification(`已清理 ${cleanedCount} 个无效的画廊条目`, 'info');
+            }
+        } catch (error) {
+            console.error('Error cleaning up gallery entries:', error);
+        }
     }
 }
 

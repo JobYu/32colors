@@ -25,7 +25,7 @@ class CanvasRenderer {
             maxZoom: 50,           // 像素模式最大缩放，支持查看单个像素细节
             gridModeMaxZoom: 25,   // 网格模式最大缩放，避免过度放大
             minZoom: 1,            // 最小100%缩放
-            zoomFactor: 1.2,       // 每次点击放大20%
+            zoomFactor: 1.4,       // 每次点击放大40%，手机端更容易点击
             gridModeThreshold: 12  // 12倍缩放时切换到网格模式（500% * 1.2^6 ≈ 12倍）
         };
         
@@ -33,7 +33,14 @@ class CanvasRenderer {
         this.interaction = {
             isDragging: false,
             lastMousePos: { x: 0, y: 0 },
-            highlightedNumber: null
+            highlightedNumber: null,
+            // 触摸相关状态
+            touches: [],
+            lastTouchDistance: 0,
+            lastTouchCenter: { x: 0, y: 0 },
+            isTouchZooming: false,
+            touchStartTime: 0,
+            touchMoved: false
         };
         
         this.setupEventListeners();
@@ -56,33 +63,46 @@ class CanvasRenderer {
         if (!this.gameData) return;
         
         const { dimensions } = this.gameData;
-        // const canvasRect = this.canvas.getBoundingClientRect(); // Not strictly needed if we default to 5x first
         
-        // Set default 1000% (10x) zoom as the target
-        let scale = 10; 
-        
-        // Optional: If 10x scale is too large to fit the image within the canvas view, 
-        // then reduce scale to fit. This prevents extremely large images from being initially unusable.
-        // Consider if this is desired, or if 10x should always be the rule.
-        const maxFitScaleX = (this.canvas.width - 40) / dimensions.width; // 20px padding on each side
-        const maxFitScaleY = (this.canvas.height - 40) / dimensions.height; // 20px padding on each side
-        const maxFitScale = Math.min(maxFitScaleX, maxFitScaleY);
-
-        if (scale > maxFitScale && maxFitScale > 0) { // only adjust if 10x is too big AND maxFitScale is valid
-            // scale = maxFitScale; 
-            // For now, let's always prioritize 10x. If it's too big, user can zoom out.
-            // If you want it to always fit if 10x is too big, uncomment the line above.
+        // 根据设备类型设置不同的初始缩放
+        let scale;
+        if (this.isMobileDevice()) {
+            // 移动端：根据图片大小动态调整，确保既能看清又能操作
+            if (Math.max(dimensions.width, dimensions.height) <= 16) {
+                scale = 20; // 小图片放大更多，便于点击
+            } else if (Math.max(dimensions.width, dimensions.height) <= 32) {
+                scale = 12; // 中等图片适中放大
+            } else if (Math.max(dimensions.width, dimensions.height) <= 64) {
+                scale = 8;  // 较大图片适度放大
+            } else {
+                scale = 6;  // 大图片保证点击精度
+            }
+        } else {
+            // 桌面端：保持原有的10倍缩放
+            scale = 10;
         }
         
-        // Ensure scale is not less than a minimum reasonable zoom, e.g., 1x, or 0.5x if images can be very large.
-        scale = Math.max(this.settings.minZoom, scale); // settings.minZoom is 1 by default
+        // 检查是否需要缩小以适应屏幕
+        const maxFitScaleX = (this.canvas.width - 40) / dimensions.width;
+        const maxFitScaleY = (this.canvas.height - 40) / dimensions.height;
+        const maxFitScale = Math.min(maxFitScaleX, maxFitScaleY);
+
+        if (scale > maxFitScale && maxFitScale > 0) {
+            // 在移动端，如果计算的缩放太大，使用适合屏幕的缩放
+            if (this.isMobileDevice()) {
+                scale = Math.max(4, maxFitScale); // 移动端最小4倍缩放，便于点击
+            }
+            // 桌面端保持原有逻辑，优先10倍缩放
+        }
+        
+        // 确保缩放不小于最小值
+        scale = Math.max(this.settings.minZoom, scale);
                 
         this.transform = {
             scale: scale,
             translateX: (this.canvas.width - dimensions.width * scale) / 2,
             translateY: (this.canvas.height - dimensions.height * scale) / 2
         };
-        // No need to call this.render() here as setGameData, which calls resetView, will call render.
     }
 
     /**
@@ -505,11 +525,17 @@ class CanvasRenderer {
     }
 
     /**
-     * 检查是否可以点击填色（只有网格模式下才能点击）
+     * 检查是否可以点击（像素级别降低点击要求）
      * @returns {boolean} 是否可以点击
      */
     canClick() {
-        return this.isGridMode(); // 只有网格模式下才能点击填色
+        // 移动端降低点击要求
+        if (this.isMobileDevice()) {
+            return this.transform.scale >= 1.2; // 移动端1.2倍缩放即可点击
+        }
+        
+        // 桌面端保持较高要求
+        return this.transform.scale >= this.settings.minZoomForClick;
     }
 
     /**
@@ -580,31 +606,208 @@ class CanvasRenderer {
             const worldPos = this.screenToWorld(screenX, screenY);
             const cell = this.getCellAt(worldPos.x, worldPos.y);
             
-            // 根据模式设置鼠标指针和提示
-            if (this.isGridMode()) {
-                // 网格模式：可以点击填色
-                if (cell && !cell.revealed) {
-                    this.canvas.style.cursor = 'pointer';
-                    this.canvas.title = `点击填充颜色 - 数字 ${cell.number}`;
-                } else if (cell && cell.revealed) {
-                    this.canvas.style.cursor = 'default';
-                    this.canvas.title = `已填充 - 数字 ${cell.number}`;
-                } else {
-                    this.canvas.style.cursor = 'crosshair';
-                    this.canvas.title = '网格模式 - 可以点击填色';
-                }
-            } else {
-                // 像素模式：只能查看，不能点击
-                this.canvas.style.cursor = 'crosshair';
-                if (cell && !cell.revealed) {
-                    this.canvas.title = `像素模式 - 数字 ${cell.number} (放大到网格模式可填色)`;
-                } else if (cell && cell.revealed) {
-                    this.canvas.title = `像素模式 - 已填充数字 ${cell.number}`;
-                } else {
-                    this.canvas.title = '像素模式 - 放大到网格模式可填色';
-                }
+            // 更新高亮状态
+            if (cell && cell.number !== this.interaction.highlightedNumber) {
+                this.interaction.highlightedNumber = cell.number;
+                this.render();
+            } else if (!cell && this.interaction.highlightedNumber) {
+                this.interaction.highlightedNumber = null;
+                this.render();
             }
         });
+
+        // 添加移动端触摸支持
+        this.setupTouchEvents();
+    }
+
+    /**
+     * 设置触摸事件监听器
+     */
+    setupTouchEvents() {
+        // 触摸开始
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            
+            const rect = this.canvas.getBoundingClientRect();
+            this.interaction.touches = Array.from(e.touches).map(touch => ({
+                id: touch.identifier,
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top
+            }));
+
+            this.interaction.touchStartTime = Date.now();
+            this.interaction.touchMoved = false;
+
+            if (this.interaction.touches.length === 1) {
+                // 单指触摸 - 准备拖拽
+                this.interaction.isDragging = true;
+                this.interaction.lastMousePos = {
+                    x: this.interaction.touches[0].x,
+                    y: this.interaction.touches[0].y
+                };
+            } else if (this.interaction.touches.length === 2) {
+                // 双指触摸 - 准备缩放
+                this.interaction.isTouchZooming = true;
+                this.interaction.isDragging = false;
+                
+                const distance = this.getTouchDistance(this.interaction.touches[0], this.interaction.touches[1]);
+                this.interaction.lastTouchDistance = distance;
+                
+                const center = this.getTouchCenter(this.interaction.touches[0], this.interaction.touches[1]);
+                this.interaction.lastTouchCenter = center;
+            }
+        });
+
+        // 触摸移动
+        this.canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            
+            if (this.interaction.touches.length === 0) return;
+
+            const rect = this.canvas.getBoundingClientRect();
+            const currentTouches = Array.from(e.touches).map(touch => ({
+                id: touch.identifier,
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top
+            }));
+
+            this.interaction.touchMoved = true;
+
+            if (currentTouches.length === 1 && this.interaction.touches.length === 1) {
+                // 单指拖拽
+                if (this.interaction.isDragging && !this.interaction.isTouchZooming) {
+                    const deltaX = currentTouches[0].x - this.interaction.lastMousePos.x;
+                    const deltaY = currentTouches[0].y - this.interaction.lastMousePos.y;
+                    
+                    this.pan(deltaX, deltaY);
+                    
+                    this.interaction.lastMousePos = {
+                        x: currentTouches[0].x,
+                        y: currentTouches[0].y
+                    };
+                }
+            } else if (currentTouches.length === 2 && this.interaction.touches.length === 2) {
+                // 双指缩放
+                const distance = this.getTouchDistance(currentTouches[0], currentTouches[1]);
+                const center = this.getTouchCenter(currentTouches[0], currentTouches[1]);
+                
+                if (this.interaction.isTouchZooming && this.interaction.lastTouchDistance > 0) {
+                    const scaleFactor = distance / this.interaction.lastTouchDistance;
+                    
+                    // 增强移动端缩放灵敏度，让格子更容易点击
+                    const clampedFactor = Math.max(0.7, Math.min(1.5, scaleFactor));
+                    
+                    this.zoom(clampedFactor, center);
+                    
+                    // 同时处理双指拖拽（移动缩放中心）
+                    const centerDeltaX = center.x - this.interaction.lastTouchCenter.x;
+                    const centerDeltaY = center.y - this.interaction.lastTouchCenter.y;
+                    
+                    if (Math.abs(centerDeltaX) > 2 || Math.abs(centerDeltaY) > 2) {
+                        this.pan(centerDeltaX, centerDeltaY);
+                    }
+                }
+                
+                this.interaction.lastTouchDistance = distance;
+                this.interaction.lastTouchCenter = center;
+            }
+
+            this.interaction.touches = currentTouches;
+        });
+
+        // 触摸结束
+        this.canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            
+            const touchDuration = Date.now() - this.interaction.touchStartTime;
+            const wasQuickTap = touchDuration < 300 && !this.interaction.touchMoved;
+
+            if (wasQuickTap && this.interaction.touches.length === 1) {
+                // 快速点击 - 填色
+                const touch = this.interaction.touches[0];
+                const worldPos = this.screenToWorld(touch.x, touch.y);
+                const cell = this.getCellAtWithExpandedHitArea(worldPos.x, worldPos.y);
+                
+                if (cell && this.canClick()) {
+                    const event = new CustomEvent('cellClick', { detail: cell });
+                    this.canvas.dispatchEvent(event);
+                }
+            }
+
+            // 重置状态
+            this.interaction.isDragging = false;
+            this.interaction.isTouchZooming = false;
+            this.interaction.touches = [];
+            this.interaction.lastTouchDistance = 0;
+            this.interaction.touchMoved = false;
+        });
+
+        // 触摸取消
+        this.canvas.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            this.interaction.isDragging = false;
+            this.interaction.isTouchZooming = false;
+            this.interaction.touches = [];
+            this.interaction.lastTouchDistance = 0;
+            this.interaction.touchMoved = false;
+        });
+    }
+
+    /**
+     * 计算两个触摸点之间的距离
+     */
+    getTouchDistance(touch1, touch2) {
+        const dx = touch2.x - touch1.x;
+        const dy = touch2.y - touch1.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    /**
+     * 计算两个触摸点的中心
+     */
+    getTouchCenter(touch1, touch2) {
+        return {
+            x: (touch1.x + touch2.x) / 2,
+            y: (touch1.y + touch2.y) / 2
+        };
+    }
+
+    /**
+     * 获取指定坐标的单元格（扩大的点击区域，适用于移动端）
+     * @param {number} x - 世界坐标X
+     * @param {number} y - 世界坐标Y
+     * @returns {object} 单元格数据
+     */
+    getCellAtWithExpandedHitArea(x, y) {
+        if (!this.gameData || !this.gameData.gameGrid) return null;
+        
+        const { gameGrid } = this.gameData;
+        
+        // 移动端使用扩大的点击区域，进一步增大便于点击
+        const expandRadius = this.isMobileDevice() ? 1.5 : 0;
+        
+        // 首先尝试精确匹配
+        let cell = this.getCellAt(x, y);
+        if (cell) return cell;
+        
+        // 如果没有精确匹配，在移动端尝试周围区域
+        if (expandRadius > 0) {
+            for (let dy = -expandRadius; dy <= expandRadius; dy++) {
+                for (let dx = -expandRadius; dx <= expandRadius; dx++) {
+                    cell = this.getCellAt(x + dx, y + dy);
+                    if (cell) return cell;
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * 检测是否为移动设备
+     */
+    isMobileDevice() {
+        return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     }
 
     /**
