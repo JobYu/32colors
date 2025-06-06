@@ -1252,13 +1252,9 @@ class ColorByNumbersApp {
         // Initialize size filter
         this.initializeSizeFilter();
         
-        // Initialize "All Images" section
+        // Initialize filtered images container but don't show anything initially
         if (this.elements.filteredImagesContainer) {
-            this.elements.filteredImagesContainer.innerHTML = '<h3>All Images</h3>';
-            const allImagesContainer = document.createElement('div');
-            allImagesContainer.className = 'gallery-images-container';
-            allImagesContainer.id = 'allImagesContainer';
-            this.elements.filteredImagesContainer.appendChild(allImagesContainer);
+            this.elements.filteredImagesContainer.innerHTML = '';
         }
     }
 
@@ -1266,11 +1262,8 @@ class ColorByNumbersApp {
      * 当图库中的单张图片加载完成时的回调
      */
     async onGalleryImageLoaded(imageInfo, categoryName, loadingStats) {
-        // Update category section
+        // Update category section only
         await this.addImageToCategorySection(imageInfo, categoryName);
-        
-        // Update "All Images" section
-        await this.addImageToAllImagesSection(imageInfo);
         
         // Update loading progress in console (optional)
         if (loadingStats.loadedImages % 5 === 0 || loadingStats.loadedImages === loadingStats.totalImages) {
@@ -1318,15 +1311,7 @@ class ColorByNumbersApp {
         await this.addSingleImageToContainer(imageInfo, imagesContainer);
     }
 
-    /**
-     * 添加图片到"所有图片"区域
-     */
-    async addImageToAllImagesSection(imageInfo) {
-        const allImagesContainer = document.getElementById('allImagesContainer');
-        if (allImagesContainer) {
-            await this.addSingleImageToContainer(imageInfo, allImagesContainer);
-        }
-    }
+
 
     /**
      * 添加单张图片到指定容器
@@ -1393,7 +1378,7 @@ class ColorByNumbersApp {
         if (!this.elements.sizeFilter) return;
         
         // Clear existing options except the first one
-        this.elements.sizeFilter.innerHTML = '<option value="all">All Sizes</option>';
+        this.elements.sizeFilter.innerHTML = '<option value="all">By Category</option>';
         
         const sizeCategoryNames = galleryManager.getSizeCategoryNames().filter(name => {
             return galleryManager.getImagesBySizeCategory(name).length > 0;
@@ -1443,7 +1428,7 @@ class ColorByNumbersApp {
         if (!this.elements.sizeFilter) return;
         
         // Clear existing options except the first one
-        this.elements.sizeFilter.innerHTML = '<option value="all">All Sizes</option>';
+        this.elements.sizeFilter.innerHTML = '<option value="all">By Category</option>';
         
         const sizeCategoryNames = galleryManager.getSizeCategoryNames();
         sizeCategoryNames.forEach(categoryName => {
@@ -1454,59 +1439,25 @@ class ColorByNumbersApp {
         });
     }
 
-    /**
-     * 渲染所有内置图库图片（用于筛选功能）
-     */
-    renderAllBuiltInImages() {
-        if (!this.elements.filteredImagesContainer) return;
-        
-        this.elements.filteredImagesContainer.innerHTML = '<h3>All Images</h3>';
-        
-        // Get all images from all folder categories
-        const allImages = [];
-        const folderCategoryNames = galleryManager.getFolderCategoryNames();
-        
-        folderCategoryNames.forEach(categoryName => {
-            const images = galleryManager.getImagesByFolderCategory(categoryName);
-            allImages.push(...images);
-        });
-        
-        if (allImages.length > 0) {
-            const imagesContainer = document.createElement('div');
-            imagesContainer.className = 'gallery-images-container';
-            imagesContainer.id = 'filteredImagesDisplay'; // Different ID for filtered view
-            this.renderImagesToContainer(allImages, imagesContainer);
-            this.elements.filteredImagesContainer.appendChild(imagesContainer);
-        } else {
-            this.elements.filteredImagesContainer.innerHTML += '<p>No images found.</p>';
-        }
-    }
+
 
     /**
      * 应用图片筛选
      */
     applyImageFilter() {
-        if (!this.elements.sizeFilter || !this.elements.filteredImagesContainer) return;
+        if (!this.elements.sizeFilter || !this.elements.filteredImagesContainer || !this.elements.folderCategoriesContainer) return;
         
         const selectedSize = this.elements.sizeFilter.value;
         
         if (selectedSize === 'all') {
-            // Show the progressive loading container
-            this.elements.filteredImagesContainer.innerHTML = '<h3>All Images</h3>';
-            const allImagesContainer = document.createElement('div');
-            allImagesContainer.className = 'gallery-images-container';
-            allImagesContainer.id = 'allImagesContainer';
-            this.elements.filteredImagesContainer.appendChild(allImagesContainer);
-            
-            // Re-populate with current images
-            const allImages = galleryManager.allImages;
-            allImages.forEach(async imageInfo => {
-                await this.addSingleImageToContainer(imageInfo, allImagesContainer);
-            });
+            // Show category view, hide filtered view
+            this.elements.folderCategoriesContainer.style.display = 'block';
+            this.elements.filteredImagesContainer.innerHTML = '';
             return;
         }
         
-        // Filter by selected size category
+        // Hide category view, show filtered view
+        this.elements.folderCategoriesContainer.style.display = 'none';
         this.elements.filteredImagesContainer.innerHTML = `<h3>${selectedSize}</h3>`;
         
         const filteredImages = galleryManager.getImagesBySizeCategory(selectedSize);
@@ -1743,11 +1694,17 @@ class ColorByNumbersApp {
         if (galleryManager && galleryManager.initialized) {
             this.renderFolderCategories();
             
-            // 刷新筛选后的图片显示（如果当前有筛选）
-            if (this.elements.sizeFilter && this.elements.sizeFilter.value === 'all') {
-                this.renderAllBuiltInImages();
-            } else {
-                this.applyImageFilter();
+            // 重置筛选器为默认状态（By Category）
+            if (this.elements.sizeFilter) {
+                this.elements.sizeFilter.value = 'all';
+            }
+            
+            // 确保显示分类视图
+            if (this.elements.folderCategoriesContainer) {
+                this.elements.folderCategoriesContainer.style.display = 'block';
+            }
+            if (this.elements.filteredImagesContainer) {
+                this.elements.filteredImagesContainer.innerHTML = '';
             }
         }
         
