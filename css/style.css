@@ -625,6 +625,30 @@ body {
     opacity: 0.8;
 }
 
+.footer-policy-links {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.footer-policy-links a {
+    color: white;
+    text-decoration: none;
+    opacity: 0.8;
+    font-size: 0.9em;
+    transition: opacity 0.2s ease;
+}
+
+.footer-policy-links a:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+.footer-policy-links .separator {
+    margin: 0 10px;
+    opacity: 0.6;
+}
+
 /* 动画 */
 @keyframes fadeIn {
     from { opacity: 0; }
