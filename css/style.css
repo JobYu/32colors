@@ -761,13 +761,11 @@ body {
 
 .gallery-images-container {
     display: flex;
-    /* flex-wrap: wrap; */ /* Removed for horizontal scroll */
-    flex-direction: row; /* Explicitly set, though default for flex */
-    overflow-x: auto;   /* Enable horizontal scrolling */
-    white-space: nowrap;  /* Prevent items from wrapping to new lines */
-    padding-bottom: 10px; /* Add some padding for the scrollbar */
+    flex-wrap: wrap; /* Enable wrapping to new lines */
+    flex-direction: row; /* Horizontal layout by default */
     gap: 15px; /* Spacing between items */
     min-height: 160px; /* Adjusted min-height to comfortably fit new gallery item height */
+    padding: 10px 0; /* Vertical padding */
 }
 
 .gallery-item {
@@ -778,15 +776,15 @@ body {
     text-align: center;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    width: 120px; /* Fixed width for items */
-    height: 140px; /* Adjusted height to be more square-like with width */
+    width: 140px; /* Slightly larger fixed width */
+    height: 160px; /* Proportional height */
     box-sizing: border-box;
-    display: inline-flex; 
+    display: flex; 
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start; /* Align items to start, allow image to take space, name follows */
-    vertical-align: top;
+    justify-content: flex-start;
     position: relative; /* For status indicator positioning */
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
 .gallery-item:hover {
@@ -795,8 +793,8 @@ body {
 }
 
 .gallery-item img {
-    max-width: 100%; /* Max width is container padding box (120px - 2*10px = 100px) */
-    max-height: 100px; /* Explicit max height for the image itself */
+    max-width: 100%; /* Max width is container padding box (140px - 2*10px = 120px) */
+    max-height: 120px; /* Larger max height for the image */
     height: auto; 
     border-radius: 4px;
     margin-bottom: 8px;
