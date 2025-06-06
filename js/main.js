@@ -1219,17 +1219,178 @@ class ColorByNumbersApp {
      */
     async initializeGallery() {
         this.showLoading('Loading image gallery...');
+        
+        // Set up progressive loading callbacks
+        galleryManager.setOnImageLoadedCallback((imageInfo, categoryName, loadingStats) => {
+            this.onGalleryImageLoaded(imageInfo, categoryName, loadingStats);
+        });
+        
+        galleryManager.setOnCategoryCompleteCallback((categoryName, images, loadingStats) => {
+            this.onGalleryCategoryComplete(categoryName, images, loadingStats);
+        });
+        
         await galleryManager.init();
+        
         if (galleryManager.initialized) {
-            this.renderFolderCategories();
-            this.initializeSizeFilter();
-            this.renderAllBuiltInImages(); // Show all images by default
+            // Initialize UI structure immediately
+            this.initializeGalleryUI();
+            this.hideLoading();
+        } else {
+            this.hideLoading();
         }
-        this.hideLoading();
     }
 
     /**
-     * 渲染图库的文件夹分类
+     * 初始化图库UI结构
+     */
+    initializeGalleryUI() {
+        // Initialize category structure
+        if (this.elements.folderCategoriesContainer) {
+            this.elements.folderCategoriesContainer.innerHTML = '<h3>By Category</h3>';
+        }
+        
+        // Initialize size filter
+        this.initializeSizeFilter();
+        
+        // Initialize "All Images" section
+        if (this.elements.filteredImagesContainer) {
+            this.elements.filteredImagesContainer.innerHTML = '<h3>All Images</h3>';
+            const allImagesContainer = document.createElement('div');
+            allImagesContainer.className = 'gallery-images-container';
+            allImagesContainer.id = 'allImagesContainer';
+            this.elements.filteredImagesContainer.appendChild(allImagesContainer);
+        }
+    }
+
+    /**
+     * 当图库中的单张图片加载完成时的回调
+     */
+    onGalleryImageLoaded(imageInfo, categoryName, loadingStats) {
+        // Update category section
+        this.addImageToCategorySection(imageInfo, categoryName);
+        
+        // Update "All Images" section
+        this.addImageToAllImagesSection(imageInfo);
+        
+        // Update loading progress in console (optional)
+        if (loadingStats.loadedImages % 5 === 0 || loadingStats.loadedImages === loadingStats.totalImages) {
+            console.log(`Gallery loading progress: ${loadingStats.loadedImages}/${loadingStats.totalImages} (${loadingStats.failedImages} failed)`);
+        }
+    }
+
+    /**
+     * 当图库中的某个分类加载完成时的回调
+     */
+    onGalleryCategoryComplete(categoryName, images, loadingStats) {
+        console.log(`Category '${categoryName}' completed with ${images.length} images`);
+        
+        // Update size filter when all categories are done
+        if (loadingStats.loadedImages + loadingStats.failedImages >= loadingStats.totalImages) {
+            this.updateSizeFilterOptions();
+            console.log('All gallery images loaded!');
+            Utils.showNotification(`Gallery loaded: ${loadingStats.loadedImages} images (${loadingStats.failedImages} failed)`, 'success');
+        }
+    }
+
+    /**
+     * 添加图片到分类区域
+     */
+    addImageToCategorySection(imageInfo, categoryName) {
+        if (!this.elements.folderCategoriesContainer) return;
+        
+        let categorySection = this.elements.folderCategoriesContainer.querySelector(`[data-category="${categoryName}"]`);
+        
+        if (!categorySection) {
+            // Create category section if it doesn't exist
+            categorySection = document.createElement('div');
+            categorySection.className = 'gallery-category-section';
+            categorySection.dataset.category = categoryName;
+            categorySection.innerHTML = `<h4>${Utils.capitalizeFirstLetter(categoryName)}</h4>`;
+            
+            const imagesContainer = document.createElement('div');
+            imagesContainer.className = 'gallery-images-container';
+            categorySection.appendChild(imagesContainer);
+            
+            this.elements.folderCategoriesContainer.appendChild(categorySection);
+        }
+        
+        const imagesContainer = categorySection.querySelector('.gallery-images-container');
+        this.addSingleImageToContainer(imageInfo, imagesContainer);
+    }
+
+    /**
+     * 添加图片到"所有图片"区域
+     */
+    addImageToAllImagesSection(imageInfo) {
+        const allImagesContainer = document.getElementById('allImagesContainer');
+        if (allImagesContainer) {
+            this.addSingleImageToContainer(imageInfo, allImagesContainer);
+        }
+    }
+
+    /**
+     * 添加单张图片到指定容器
+     */
+    addSingleImageToContainer(imageInfo, container) {
+        if (!imageInfo || !container) return;
+        
+        const userCompletedPaths = Utils.storage.get('userGallery', [])
+                                          .filter(artwork => artwork.type === 'builtin-completed')
+                                          .map(artwork => artwork.originalImageIdentifier);
+
+        const galleryItem = document.createElement('div');
+        galleryItem.className = 'gallery-item';
+        galleryItem.dataset.imagePath = imageInfo.path;
+        galleryItem.title = `${imageInfo.name} (${imageInfo.dimensions.width}x${imageInfo.dimensions.height})`;
+
+        const imgDisplay = document.createElement('img');
+        
+        // Check if image has been completed by user
+        const hasBeenCompletedByUser = userCompletedPaths.includes(imageInfo.path);
+        
+        // Only add grayscale if it hasn't been completed
+        if (!hasBeenCompletedByUser) {
+            imgDisplay.classList.add('gallery-thumbnail-grayscale'); 
+        }
+        
+        imgDisplay.src = imageInfo.path;
+        imgDisplay.alt = imageInfo.name;
+        imgDisplay.loading = 'lazy'; // Enable lazy loading for better performance
+        
+        const nameLabel = document.createElement('span');
+        nameLabel.textContent = imageInfo.name;
+        
+        galleryItem.appendChild(imgDisplay);
+        galleryItem.appendChild(nameLabel);
+        
+        galleryItem.addEventListener('click', () => this.handleBuiltInImageClick(imageInfo.path));
+        
+        container.appendChild(galleryItem);
+    }
+
+    /**
+     * 更新尺寸筛选器选项
+     */
+    updateSizeFilterOptions() {
+        if (!this.elements.sizeFilter) return;
+        
+        // Clear existing options except the first one
+        this.elements.sizeFilter.innerHTML = '<option value="all">All Sizes</option>';
+        
+        const sizeCategoryNames = galleryManager.getSizeCategoryNames().filter(name => {
+            return galleryManager.getImagesBySizeCategory(name).length > 0;
+        });
+        
+        sizeCategoryNames.forEach(categoryName => {
+            const option = document.createElement('option');
+            option.value = categoryName;
+            option.textContent = categoryName;
+            this.elements.sizeFilter.appendChild(option);
+        });
+    }
+
+    /**
+     * 渲染图库的文件夹分类（保留原函数以兼容性，但现在使用渐进式加载）
      */
     renderFolderCategories() {
         if (!this.elements.folderCategoriesContainer) return;
@@ -1276,7 +1437,7 @@ class ColorByNumbersApp {
     }
 
     /**
-     * 渲染所有内置图库图片
+     * 渲染所有内置图库图片（用于筛选功能）
      */
     renderAllBuiltInImages() {
         if (!this.elements.filteredImagesContainer) return;
@@ -1295,6 +1456,7 @@ class ColorByNumbersApp {
         if (allImages.length > 0) {
             const imagesContainer = document.createElement('div');
             imagesContainer.className = 'gallery-images-container';
+            imagesContainer.id = 'filteredImagesDisplay'; // Different ID for filtered view
             this.renderImagesToContainer(allImages, imagesContainer);
             this.elements.filteredImagesContainer.appendChild(imagesContainer);
         } else {
@@ -1311,7 +1473,18 @@ class ColorByNumbersApp {
         const selectedSize = this.elements.sizeFilter.value;
         
         if (selectedSize === 'all') {
-            this.renderAllBuiltInImages();
+            // Show the progressive loading container
+            this.elements.filteredImagesContainer.innerHTML = '<h3>All Images</h3>';
+            const allImagesContainer = document.createElement('div');
+            allImagesContainer.className = 'gallery-images-container';
+            allImagesContainer.id = 'allImagesContainer';
+            this.elements.filteredImagesContainer.appendChild(allImagesContainer);
+            
+            // Re-populate with current images
+            const allImages = galleryManager.allImages;
+            allImages.forEach(imageInfo => {
+                this.addSingleImageToContainer(imageInfo, allImagesContainer);
+            });
             return;
         }
         
