@@ -1363,7 +1363,7 @@ class ColorByNumbersApp {
         galleryItem.appendChild(imgDisplay);
         galleryItem.appendChild(nameLabel);
         
-        galleryItem.addEventListener('click', () => this.handleBuiltInImageClick(imageInfo.path));
+        galleryItem.addEventListener('click', () => this.handleGalleryImageClick(imageInfo.path));
         
         container.appendChild(galleryItem);
     }
