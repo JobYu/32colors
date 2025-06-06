@@ -283,8 +283,14 @@ class CanvasRenderer {
             this.ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
             this.ctx.fillRect(x, y, width, height);
         } else {
-            // Unrevealed, non-transparent cells
-            this.ctx.fillStyle = 'rgba(220, 220, 220, 0.7)'; // Default placeholder for non-revealed
+            // Unrevealed, non-transparent cells - use grayscale version of original color
+            let fillColor = 'rgba(220, 220, 220, 0.7)'; // Default fallback
+            if (cell.originalColor && typeof cell.originalColor.r !== 'undefined') {
+                // Calculate grayscale value from original color
+                const grayscale = Utils.getGrayscale(cell.originalColor.r, cell.originalColor.g, cell.originalColor.b);
+                fillColor = `rgba(${grayscale}, ${grayscale}, ${grayscale}, 0.8)`;
+            }
+            this.ctx.fillStyle = fillColor;
             this.ctx.fillRect(x, y, width, height);
             
             // Draw numbers only if enabled and scale is sufficient
@@ -924,10 +930,15 @@ class CanvasRenderer {
             ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
             ctx.fillRect(x, y, width, height);
         } else {
-            // For unrevealed cells during export: current decision is to make them transparent.
-            // If they needed a placeholder color, it would be drawn here.
-            // For now, unrevealed non-transparent cells in an export will be transparent.
-            // ctx.clearRect(x, y, width, height); // Or simply do nothing if canvas is already clear.
+            // For unrevealed cells during export: use grayscale version like in main render
+            let fillColor = 'rgba(220, 220, 220, 0.7)'; // Default fallback
+            if (cell.originalColor && typeof cell.originalColor.r !== 'undefined') {
+                // Calculate grayscale value from original color
+                const grayscale = Utils.getGrayscale(cell.originalColor.r, cell.originalColor.g, cell.originalColor.b);
+                fillColor = `rgba(${grayscale}, ${grayscale}, ${grayscale}, 0.8)`;
+            }
+            ctx.fillStyle = fillColor;
+            ctx.fillRect(x, y, width, height);
         }
         
         // Draw grid lines if showGrid is enabled

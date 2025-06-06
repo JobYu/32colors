@@ -207,7 +207,7 @@ class ImageProcessor {
             if (opaquePixels.length === 0) {
                 // Handle fully transparent image or image with all pixels below threshold
                 // Create a gameGrid of all transparent cells
-                const gameGrid = this.generateGameGrid(imageData, [], gridSize, transparentThreshold, true);
+                const gameGrid = this.generateGameGrid(imageData, [], gridSize, transparentThreshold, true, imageData);
                  return {
                     originalImage: img,
                     processedImageData: imageData, // Original image data
@@ -240,7 +240,9 @@ class ImageProcessor {
                 quantizedImageData, // This is imageData with opaque pixels mapped to palette
                 palette,
                 gridSize,
-                transparentThreshold
+                transparentThreshold,
+                false,
+                imageData // Pass original image data for grayscale calculation
             );
 
             return {
@@ -352,9 +354,10 @@ class ImageProcessor {
      * @param {string|number} gridSize - 网格大小（对于像素级别游戏忽略此参数）
      * @param {number} transparentThreshold - Alpha threshold for transparency
      * @param {boolean} forceAllTransparent - If true, mark all cells as transparent (for fully transparent images)
+     * @param {ImageData} originalImageData - 原始图像数据，用于计算灰度值
      * @returns {Array} 游戏网格数据
      */
-    generateGameGrid(imageData, palette, gridSize, transparentThreshold = 128, forceAllTransparent = false) {
+    generateGameGrid(imageData, palette, gridSize, transparentThreshold = 128, forceAllTransparent = false, originalImageData = null) {
         const { width, height } = imageData;
         const data = imageData.data;
 
@@ -401,6 +404,17 @@ class ImageProcessor {
                     );
                     
                     if (paletteItem && paletteItem.color) {
+                        // Get original color for grayscale calculation
+                        let originalColor = pixelColor; // Default to current pixel color
+                        if (originalImageData) {
+                            const originalPixelIndex = (row * width + col) * 4;
+                            originalColor = {
+                                r: originalImageData.data[originalPixelIndex],
+                                g: originalImageData.data[originalPixelIndex + 1],
+                                b: originalImageData.data[originalPixelIndex + 2]
+                            };
+                        }
+                        
                         gridRow.push({
                             row: row,
                             col: col,
@@ -409,6 +423,7 @@ class ImageProcessor {
                             width: 1,
                             height: 1,
                             color: { ...paletteItem.color }, // Store a copy of the palette color
+                            originalColor: { ...originalColor }, // Store original pixel color for grayscale calculation
                             number: paletteItem.number,
                             revealed: false,
                             isTransparent: false,
