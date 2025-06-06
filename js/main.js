@@ -1221,8 +1221,8 @@ class ColorByNumbersApp {
         this.showLoading('Loading image gallery...');
         
         // Set up progressive loading callbacks
-        galleryManager.setOnImageLoadedCallback((imageInfo, categoryName, loadingStats) => {
-            this.onGalleryImageLoaded(imageInfo, categoryName, loadingStats);
+        galleryManager.setOnImageLoadedCallback(async (imageInfo, categoryName, loadingStats) => {
+            await this.onGalleryImageLoaded(imageInfo, categoryName, loadingStats);
         });
         
         galleryManager.setOnCategoryCompleteCallback((categoryName, images, loadingStats) => {
@@ -1265,12 +1265,12 @@ class ColorByNumbersApp {
     /**
      * 当图库中的单张图片加载完成时的回调
      */
-    onGalleryImageLoaded(imageInfo, categoryName, loadingStats) {
+    async onGalleryImageLoaded(imageInfo, categoryName, loadingStats) {
         // Update category section
-        this.addImageToCategorySection(imageInfo, categoryName);
+        await this.addImageToCategorySection(imageInfo, categoryName);
         
         // Update "All Images" section
-        this.addImageToAllImagesSection(imageInfo);
+        await this.addImageToAllImagesSection(imageInfo);
         
         // Update loading progress in console (optional)
         if (loadingStats.loadedImages % 5 === 0 || loadingStats.loadedImages === loadingStats.totalImages) {
@@ -1295,7 +1295,7 @@ class ColorByNumbersApp {
     /**
      * 添加图片到分类区域
      */
-    addImageToCategorySection(imageInfo, categoryName) {
+    async addImageToCategorySection(imageInfo, categoryName) {
         if (!this.elements.folderCategoriesContainer) return;
         
         let categorySection = this.elements.folderCategoriesContainer.querySelector(`[data-category="${categoryName}"]`);
@@ -1315,23 +1315,23 @@ class ColorByNumbersApp {
         }
         
         const imagesContainer = categorySection.querySelector('.gallery-images-container');
-        this.addSingleImageToContainer(imageInfo, imagesContainer);
+        await this.addSingleImageToContainer(imageInfo, imagesContainer);
     }
 
     /**
      * 添加图片到"所有图片"区域
      */
-    addImageToAllImagesSection(imageInfo) {
+    async addImageToAllImagesSection(imageInfo) {
         const allImagesContainer = document.getElementById('allImagesContainer');
         if (allImagesContainer) {
-            this.addSingleImageToContainer(imageInfo, allImagesContainer);
+            await this.addSingleImageToContainer(imageInfo, allImagesContainer);
         }
     }
 
     /**
      * 添加单张图片到指定容器
      */
-    addSingleImageToContainer(imageInfo, container) {
+    async addSingleImageToContainer(imageInfo, container) {
         if (!imageInfo || !container) return;
         
         const userCompletedPaths = Utils.storage.get('userGallery', [])
@@ -1353,7 +1353,25 @@ class ColorByNumbersApp {
             imgDisplay.classList.add('gallery-thumbnail-grayscale'); 
         }
         
-        imgDisplay.src = imageInfo.path;
+        try {
+            // Create a 1000% zoomed, pixel-perfect thumbnail using canvas
+            const originalImg = await imageProcessor.loadImageFromUrl(imageInfo.path);
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            const scaleFactor = 10;
+            tempCanvas.width = imageInfo.dimensions.width * scaleFactor;
+            tempCanvas.height = imageInfo.dimensions.height * scaleFactor;
+            
+            tempCtx.imageSmoothingEnabled = false; // Crucial for pixel-perfect scaling
+            tempCtx.drawImage(originalImg, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            imgDisplay.src = tempCanvas.toDataURL();
+        } catch (error) {
+            console.error(`Failed to create thumbnail for ${imageInfo.path}:`, error);
+            imgDisplay.src = imageInfo.path; // Fallback to original path if thumbnail fails
+        }
+        
         imgDisplay.alt = imageInfo.name;
         imgDisplay.loading = 'lazy'; // Enable lazy loading for better performance
         
@@ -1482,8 +1500,8 @@ class ColorByNumbersApp {
             
             // Re-populate with current images
             const allImages = galleryManager.allImages;
-            allImages.forEach(imageInfo => {
-                this.addSingleImageToContainer(imageInfo, allImagesContainer);
+            allImages.forEach(async imageInfo => {
+                await this.addSingleImageToContainer(imageInfo, allImagesContainer);
             });
             return;
         }
