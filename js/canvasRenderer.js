@@ -8,6 +8,7 @@ class CanvasRenderer {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.gameData = null;
+        this.bucketToolActive = false;
         
         // 变换状态
         this.transform = {
@@ -21,11 +22,11 @@ class CanvasRenderer {
             showGrid: true,
             showNumbers: true,
             showOriginal: false,
-            minZoomForClick: 2,    // 降低最小点击缩放要求，适应像素级别
-            maxZoom: 50,           // 像素模式最大缩放，支持查看单个像素细节
-            gridModeMaxZoom: 25,   // 网格模式最大缩放，避免过度放大
+            minZoomForClick: 1.5,  // 进一步降低最小点击缩放要求
+            maxZoom: 100,          // 大幅提高像素模式最大缩放，支持超精细查看
+            gridModeMaxZoom: 60,   // 提高网格模式最大缩放
             minZoom: 1,            // 最小100%缩放
-            zoomFactor: 1.4,       // 每次点击放大40%，手机端更容易点击
+            zoomFactor: 1.5,       // 增加每次放大倍数到50%，更快达到高缩放
             gridModeThreshold: 12  // 12倍缩放时切换到网格模式（500% * 1.2^6 ≈ 12倍）
         };
         
@@ -34,6 +35,8 @@ class CanvasRenderer {
             isDragging: false,
             lastMousePos: { x: 0, y: 0 },
             highlightedNumber: null,
+            hoveredCell: null,           // 当前悬停的格子
+            lastHoverCheck: 0,           // 上次悬停检查时间，用于性能优化
             // 触摸相关状态
             touches: [],
             lastTouchDistance: 0,
@@ -64,22 +67,30 @@ class CanvasRenderer {
         
         const { dimensions } = this.gameData;
         
-        // 根据设备类型设置不同的初始缩放
+        // 根据设备类型设置不同的初始缩放，大幅提高初始显示大小
         let scale;
         if (this.isMobileDevice()) {
-            // 移动端：根据图片大小动态调整，确保既能看清又能操作
+            // 移动端：根据图片大小动态调整，大幅提高初始缩放
             if (Math.max(dimensions.width, dimensions.height) <= 16) {
-                scale = 20; // 小图片放大更多，便于点击
+                scale = 30; // 小图片放大更多，便于点击
             } else if (Math.max(dimensions.width, dimensions.height) <= 32) {
-                scale = 12; // 中等图片适中放大
+                scale = 20; // 中等图片适中放大
             } else if (Math.max(dimensions.width, dimensions.height) <= 64) {
-                scale = 8;  // 较大图片适度放大
+                scale = 15; // 较大图片适度放大
             } else {
-                scale = 6;  // 大图片保证点击精度
+                scale = 10; // 大图片保证点击精度
             }
         } else {
-            // 桌面端：保持原有的10倍缩放
-            scale = 10;
+            // 桌面端：大幅提高初始缩放到15倍
+            if (Math.max(dimensions.width, dimensions.height) <= 16) {
+                scale = 25; // 小图片特别放大
+            } else if (Math.max(dimensions.width, dimensions.height) <= 32) {
+                scale = 18; // 中等图片大幅放大
+            } else if (Math.max(dimensions.width, dimensions.height) <= 64) {
+                scale = 12; // 较大图片适度放大
+            } else {
+                scale = 8;  // 大图片保证显示完整
+            }
         }
         
         // 检查是否需要缩小以适应屏幕
@@ -117,7 +128,7 @@ class CanvasRenderer {
     }
 
     /**
-     * 主渲染函数
+     * 主渲染函数（优化高缩放级别性能）
      */
     render() {
         if (!this.gameData) {
@@ -130,18 +141,26 @@ class CanvasRenderer {
             console.log(`渲染缩放级别: ${this.transform.scale.toFixed(2)}x, 平移: (${this.transform.translateX.toFixed(1)}, ${this.transform.translateY.toFixed(1)})`);
         }
 
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        this.ctx.save();
-        this.applyTransform();
-        
-        if (this.settings.showOriginal) {
-            this.renderOriginalImage();
-        } else {
-            this.renderGameGrid();
+        // 使用requestAnimationFrame优化渲染性能
+        if (this._renderFrame) {
+            cancelAnimationFrame(this._renderFrame);
         }
         
-        this.ctx.restore();
+        this._renderFrame = requestAnimationFrame(() => {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            
+            this.ctx.save();
+            this.applyTransform();
+            
+            if (this.settings.showOriginal) {
+                this.renderOriginalImage();
+            } else {
+                this.renderGameGrid();
+            }
+            
+            this.ctx.restore();
+            this._renderFrame = null;
+        });
     }
 
     /**
@@ -316,6 +335,42 @@ class CanvasRenderer {
         if (this.interaction.highlightedNumber !== null && this.interaction.highlightedNumber === number && !revealed) {
             this.ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
             this.ctx.fillRect(x, y, width, height);
+        }
+
+        // Highlight hovered cell
+        if (this.interaction.hoveredCell === cell && this.canClick()) {
+            if (revealed) {
+                // 已填充的格子：添加内嵌的亮白色边框，避免超出格子边界
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                const borderWidth = Math.max(1, 2 / this.transform.scale);
+                this.ctx.lineWidth = borderWidth;
+                
+                // 内嵌边框，确保不超出格子边界
+                const halfBorder = borderWidth / 2;
+                this.ctx.strokeRect(
+                    x + halfBorder, 
+                    y + halfBorder, 
+                    width - borderWidth, 
+                    height - borderWidth
+                );
+            } else {
+                // 未填充的格子：蓝色高亮完全覆盖格子区域
+                this.ctx.fillStyle = 'rgba(0, 123, 255, 0.25)';
+                this.ctx.fillRect(x, y, width, height);
+                
+                // 内嵌边框，确保边框在格子内部
+                this.ctx.strokeStyle = 'rgba(0, 123, 255, 0.8)';
+                const borderWidth = Math.max(1, 2 / this.transform.scale);
+                this.ctx.lineWidth = borderWidth;
+                
+                const halfBorder = borderWidth / 2;
+                this.ctx.strokeRect(
+                    x + halfBorder, 
+                    y + halfBorder, 
+                    width - borderWidth, 
+                    height - borderWidth
+                );
+            }
         }
     }
 
@@ -515,6 +570,55 @@ class CanvasRenderer {
     }
 
     /**
+     * 设置悬停的格子
+     * @param {object} cell - 悬停的格子
+     */
+    setHoveredCell(cell) {
+        if (this.interaction.hoveredCell !== cell) {
+            this.interaction.hoveredCell = cell;
+            this.updateCursorStyle(cell);
+            this.render();
+        }
+    }
+
+    /**
+     * 清除悬停状态
+     */
+    clearHoveredCell() {
+        if (this.interaction.hoveredCell !== null) {
+            this.interaction.hoveredCell = null;
+            this.updateCursorStyle(null);
+            this.render();
+        }
+    }
+
+    /**
+     * 更新鼠标样式
+     * @param {object} cell - 当前悬停的格子
+     */
+    updateCursorStyle(cell) {
+        if (this.interaction.isDragging) {
+            this.canvas.style.cursor = 'grabbing';
+        } else if (this.bucketToolActive) {
+            // Bucket tool 激活时使用特殊光标
+            this.canvas.style.cursor = 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTQgNEwxOCA4TDE2IDEwTDE0IDhMMTIgMTBMMTAgOEw4IDEwTDYgOEwxMCA0TDEyIDJaIiBzdHJva2U9IiMwMDAiIGZpbGw9IiNmZmYiLz4KPC9zdmc+") 12 12, pointer';
+        } else if (cell && this.canClick()) {
+            this.canvas.style.cursor = 'pointer'; // 改为手指形状
+        } else {
+            this.canvas.style.cursor = 'crosshair';
+        }
+    }
+
+    /**
+     * 设置 bucket tool 状态
+     * @param {boolean} active - 是否激活 bucket tool
+     */
+    setBucketToolActive(active) {
+        this.bucketToolActive = active;
+        this.updateCursorStyle(this.interaction.hoveredCell);
+    }
+
+    /**
      * 切换网格显示
      */
     toggleGrid() {
@@ -564,7 +668,7 @@ class CanvasRenderer {
         this.canvas.addEventListener('mousedown', (e) => {
             this.interaction.isDragging = true;
             this.interaction.lastMousePos = { x: e.clientX, y: e.clientY };
-            this.canvas.style.cursor = 'grabbing';
+            this.updateCursorStyle(null); // 拖拽时显示grabbing
         });
 
         document.addEventListener('mousemove', (e) => {
@@ -578,9 +682,33 @@ class CanvasRenderer {
             }
         });
 
+        // 鼠标悬停检测
+        this.canvas.addEventListener('mousemove', (e) => {
+            if (this.interaction.isDragging) return;
+            
+            // 性能优化：限制悬停检测频率
+            const now = Date.now();
+            if (now - this.interaction.lastHoverCheck < 16) return; // 约60fps
+            this.interaction.lastHoverCheck = now;
+            
+            const rect = this.canvas.getBoundingClientRect();
+            const screenX = e.clientX - rect.left;
+            const screenY = e.clientY - rect.top;
+            
+            const worldPos = this.screenToWorld(screenX, screenY);
+            const cell = this.getCellAtWithExpandedHitArea(worldPos.x, worldPos.y);
+            
+            this.setHoveredCell(cell);
+        });
+
+        // 鼠标离开画布时清除悬停状态
+        this.canvas.addEventListener('mouseleave', () => {
+            this.clearHoveredCell();
+        });
+
         document.addEventListener('mouseup', () => {
             this.interaction.isDragging = false;
-            this.canvas.style.cursor = 'crosshair';
+            this.updateCursorStyle(this.interaction.hoveredCell);
         });
 
         // 点击填色
@@ -592,12 +720,15 @@ class CanvasRenderer {
             const screenY = e.clientY - rect.top;
             
             const worldPos = this.screenToWorld(screenX, screenY);
-            const cell = this.getCellAt(worldPos.x, worldPos.y);
+            // 桌面端也使用扩展点击区域提高精确度
+            const cell = this.getCellAtWithExpandedHitArea(worldPos.x, worldPos.y);
             
             if (cell && this.canClick()) {
-                // 触发填色事件
-                const event = new CustomEvent('cellClick', { detail: cell });
-                this.canvas.dispatchEvent(event);
+                // 触发填色事件，使用requestAnimationFrame提高响应速度
+                requestAnimationFrame(() => {
+                    const event = new CustomEvent('cellClick', { detail: cell });
+                    this.canvas.dispatchEvent(event);
+                });
             }
         });
 
@@ -677,7 +808,19 @@ class CanvasRenderer {
                 y: touch.clientY - rect.top
             }));
 
-            this.interaction.touchMoved = true;
+            // 只有移动距离超过阈值才认为是移动，避免轻微抖动影响点击
+            const moveThreshold = this.isMobileDevice() ? 8 : 4; // 移动端容忍度更高
+            if (currentTouches.length === 1 && this.interaction.touches.length === 1) {
+                const deltaX = currentTouches[0].x - this.interaction.touches[0].x;
+                const deltaY = currentTouches[0].y - this.interaction.touches[0].y;
+                const moveDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                if (moveDistance > moveThreshold) {
+                    this.interaction.touchMoved = true;
+                }
+            } else {
+                this.interaction.touchMoved = true;
+            }
 
             if (currentTouches.length === 1 && this.interaction.touches.length === 1) {
                 // 单指拖拽
@@ -726,17 +869,21 @@ class CanvasRenderer {
             e.preventDefault();
             
             const touchDuration = Date.now() - this.interaction.touchStartTime;
-            const wasQuickTap = touchDuration < 300 && !this.interaction.touchMoved;
+            // 增加点击响应时间范围，提高触摸灵敏度
+            const wasQuickTap = touchDuration < 500 && !this.interaction.touchMoved;
 
             if (wasQuickTap && this.interaction.touches.length === 1) {
-                // 快速点击 - 填色
+                // 快速点击 - 填色，使用requestAnimationFrame提高响应速度
                 const touch = this.interaction.touches[0];
                 const worldPos = this.screenToWorld(touch.x, touch.y);
                 const cell = this.getCellAtWithExpandedHitArea(worldPos.x, worldPos.y);
                 
                 if (cell && this.canClick()) {
-                    const event = new CustomEvent('cellClick', { detail: cell });
-                    this.canvas.dispatchEvent(event);
+                    // 使用requestAnimationFrame确保立即响应
+                    requestAnimationFrame(() => {
+                        const event = new CustomEvent('cellClick', { detail: cell });
+                        this.canvas.dispatchEvent(event);
+                    });
                 }
             }
 
@@ -789,20 +936,38 @@ class CanvasRenderer {
         
         const { gameGrid } = this.gameData;
         
-        // 移动端使用扩大的点击区域，进一步增大便于点击
-        const expandRadius = this.isMobileDevice() ? 1.5 : 0;
+        // 根据当前缩放级别动态调整点击区域
+        // 缩放越小，扩展区域越大；缩放越大，扩展区域可以更精确
+        const baseRadius = this.isMobileDevice() ? 2.0 : 1.0;
+        const scaleFactor = Math.max(0.2, Math.min(1.0, this.transform.scale / 10));
+        const expandRadius = baseRadius * (1 - scaleFactor * 0.7);
         
         // 首先尝试精确匹配
         let cell = this.getCellAt(x, y);
         if (cell) return cell;
         
-        // 如果没有精确匹配，在移动端尝试周围区域
+        // 如果没有精确匹配，尝试周围区域
         if (expandRadius > 0) {
-            for (let dy = -expandRadius; dy <= expandRadius; dy++) {
-                for (let dx = -expandRadius; dx <= expandRadius; dx++) {
-                    cell = this.getCellAt(x + dx, y + dy);
-                    if (cell) return cell;
+            // 按距离优先级搜索，先搜索最近的格子
+            const searchPoints = [];
+            const maxRadius = Math.ceil(expandRadius);
+            
+            for (let dy = -maxRadius; dy <= maxRadius; dy++) {
+                for (let dx = -maxRadius; dx <= maxRadius; dx++) {
+                    if (dx === 0 && dy === 0) continue; // 已经检查过精确位置
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance <= expandRadius) {
+                        searchPoints.push({ dx, dy, distance });
+                    }
                 }
+            }
+            
+            // 按距离排序，优先检查最近的点
+            searchPoints.sort((a, b) => a.distance - b.distance);
+            
+            for (const point of searchPoints) {
+                cell = this.getCellAt(x + point.dx, y + point.dy);
+                if (cell) return cell;
             }
         }
         
@@ -961,8 +1126,15 @@ class CanvasRenderer {
      * 清理资源
      */
     cleanup() {
+        // 清理待执行的渲染帧
+        if (this._renderFrame) {
+            cancelAnimationFrame(this._renderFrame);
+            this._renderFrame = null;
+        }
+        
         this.gameData = null;
         this.interaction.highlightedNumber = null;
+        this.interaction.hoveredCell = null;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 

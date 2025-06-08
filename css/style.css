@@ -513,16 +513,24 @@ body {
     margin-right: 0;
 }
 
-/* 油漆桶激活状态 */
+/* Bucket模式激活状态 */
 .control-btn.bucket-active {
     background: linear-gradient(45deg, #28a745, #20c997);
     box-shadow: 0 0 20px rgba(40, 167, 69, 0.5);
+    border: 2px solid #fff;
+    font-weight: bold;
     animation: bucket-pulse 2s infinite;
 }
 
 @keyframes bucket-pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(40, 167, 69, 0.5);
+    }
+    50% { 
+        transform: scale(1.05);
+        box-shadow: 0 0 25px rgba(40, 167, 69, 0.8);
+    }
 }
 
 .control-btn:hover {
@@ -805,6 +813,8 @@ body {
     filter: grayscale(100%);
 }
 
+
+
 .gallery-item span {
     font-size: 0.85em;
     color: #333;
@@ -927,4 +937,6 @@ body {
 
 .filter-select:hover {
     border-color: #999;
-} 
+}
+
+ 

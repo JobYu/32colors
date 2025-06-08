@@ -19,6 +19,8 @@ class GalleryManager {
             loadedImages: 0,
             failedImages: 0
         };
+        
+
     }
 
     /**
@@ -238,6 +240,8 @@ class GalleryManager {
         }
         return this.allImages.find(img => img.path === imagePath);
     }
+
+
 }
 
 // Create a global instance (or manage it within your main app class)

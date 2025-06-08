@@ -52,7 +52,6 @@ class ColorByNumbersApp {
             gameTime: document.getElementById('gameTime'),
             
             // 游戏控制
-            resetGameBtn: document.getElementById('resetGameBtn'),
             autoFillBtn: document.getElementById('autoFillBtn'),
             saveProgressBtn: document.getElementById('saveProgressBtn'),
 
@@ -61,6 +60,8 @@ class ColorByNumbersApp {
             shareBtn: document.getElementById('shareBtn'),
             newGameBtn: document.getElementById('newGameBtn'),
             closeModalBtn: document.getElementById('closeModalBtn'),
+            
+
 
             // Gallery Elements
             builtInGalleryContainer: document.getElementById('builtInGalleryContainer'),
@@ -74,9 +75,12 @@ class ColorByNumbersApp {
             gamePage: document.getElementById('gamePage'),
             myGalleryPage: document.getElementById('myGalleryPage'),
 
+
             // Navigation elements
             homeNavBtn: document.getElementById('homeNavBtn'),
             galleryNavBtn: document.getElementById('galleryNavBtn'),
+            
+
         };
     }
 
@@ -126,10 +130,6 @@ class ColorByNumbersApp {
         });
 
         // 游戏控制
-        this.elements.resetGameBtn.addEventListener('click', () => {
-            this.resetGame();
-        });
-
         this.elements.autoFillBtn.addEventListener('click', () => {
             this.toggleBucketTool();
         });
@@ -165,6 +165,8 @@ class ColorByNumbersApp {
 
 
 
+
+
         // Gallery filter event listener
         if (this.elements.sizeFilter) {
             this.elements.sizeFilter.addEventListener('change', () => {
@@ -184,6 +186,8 @@ class ColorByNumbersApp {
                 this.showMyGalleryPage();
             });
         }
+
+
     }
 
     /**
@@ -630,6 +634,8 @@ class ColorByNumbersApp {
     hideSuccessModal() {
         this.elements.successModal.classList.remove('show');
     }
+
+
 
     /**
      * 分享游戏
@@ -1232,6 +1238,8 @@ class ColorByNumbersApp {
         await galleryManager.init();
         
         if (galleryManager.initialized) {
+
+            
             // Initialize UI structure immediately
             this.initializeGalleryUI();
             this.hideLoading();
@@ -1280,6 +1288,10 @@ class ColorByNumbersApp {
         // Update size filter when all categories are done
         if (loadingStats.loadedImages + loadingStats.failedImages >= loadingStats.totalImages) {
             this.updateSizeFilterOptions();
+            
+            // Refresh gallery display
+            this.refreshGalleryDisplay();
+            
             console.log('All gallery images loaded!');
             Utils.showNotification(`Gallery loaded: ${loadingStats.loadedImages} images (${loadingStats.failedImages} failed)`, 'success');
         }
@@ -1330,10 +1342,10 @@ class ColorByNumbersApp {
 
         const imgDisplay = document.createElement('img');
         
-        // Check if image has been completed by user
+        // Check image status
         const hasBeenCompletedByUser = userCompletedPaths.includes(imageInfo.path);
         
-        // Only add grayscale if it hasn't been completed
+        // Apply appropriate styling based on status
         if (!hasBeenCompletedByUser) {
             imgDisplay.classList.add('gallery-thumbnail-grayscale'); 
         }
@@ -1500,7 +1512,7 @@ class ColorByNumbersApp {
             const isUserGallerySection = container.closest('#userGalleryContainer');
             const hasBeenCompletedByUser = userCompletedPaths.includes(imageInfo.path);
 
-            // Only add grayscale if it's in the built-in gallery section AND hasn't been completed
+            // Apply appropriate styling based on status
             if (!isUserGallerySection && !hasBeenCompletedByUser) {
                 imgDisplay.classList.add('gallery-thumbnail-grayscale'); 
             } // Else, (it's in user gallery OR it's built-in but completed) -> show in color
@@ -1547,6 +1559,9 @@ class ColorByNumbersApp {
             console.log('[Debug] handleGalleryImageClick skipped: isProcessing is true for imagePath:', imagePath);
             return;
         }
+        
+
+        
         console.log('[Debug] handleGalleryImageClick started for imagePath:', imagePath);
         this.showLoading('Loading selected image...');
         try {
@@ -1730,6 +1745,8 @@ class ColorByNumbersApp {
         
         console.log("Switched to My Gallery Page");
     }
+
+
 
     /**
      * Shows the Game Page view and hides the Home Page view.
@@ -2186,21 +2203,21 @@ class ColorByNumbersApp {
         
         if (this.bucketTool.isActive) {
             this.elements.autoFillBtn.classList.add('bucket-active');
-            this.elements.autoFillBtn.textContent = '🪣 Bucket (Active)';
-            Utils.showNotification('Bucket tool activated! Click on cells to fill adjacent same color areas', 'info', 3000);
+            this.elements.autoFillBtn.textContent = '🎯 Normal';
+            Utils.showNotification('Bucket tool activated! Click on cells to fill adjacent same color areas. Click "Normal" to switch back.', 'info', 4000);
             
-            // 改变画布光标样式
-            if (canvasRenderer && canvasRenderer.canvas) {
-                canvasRenderer.canvas.style.cursor = 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTQgNEwxOCA4TDE2IDEwTDE0IDhMMTIgMTBMMTAgOEw4IDEwTDYgOEwxMCA0TDEyIDJaIiBzdHJva2U9IiMwMDAiIGZpbGw9IiNmZmYiLz4KPC9zdmc+") 12 12, pointer';
+            // 通知canvas renderer bucket tool状态
+            if (canvasRenderer && canvasRenderer.setBucketToolActive) {
+                canvasRenderer.setBucketToolActive(true);
             }
         } else {
             this.elements.autoFillBtn.classList.remove('bucket-active');
             this.elements.autoFillBtn.textContent = '🪣 Bucket';
-            Utils.showNotification('Bucket tool disabled', 'info');
+            Utils.showNotification('Switched to normal mode', 'info');
             
-            // 恢复默认光标样式
-            if (canvasRenderer && canvasRenderer.canvas) {
-                canvasRenderer.canvas.style.cursor = 'crosshair';
+            // 通知canvas renderer bucket tool状态
+            if (canvasRenderer && canvasRenderer.setBucketToolActive) {
+                canvasRenderer.setBucketToolActive(false);
             }
         }
     }
@@ -2220,11 +2237,6 @@ class ColorByNumbersApp {
         
         // 找到所有相邻的相同数字未填充单元格
         const cellsToFill = this.findConnectedCells(startCell, targetNumber, gameGrid);
-        
-        if (cellsToFill.length === 0) {
-            Utils.showNotification('No adjacent same color area found', 'warning');
-            return;
-        }
 
         // 填充所有找到的单元格
         let filledCount = 0;
@@ -2237,17 +2249,11 @@ class ColorByNumbersApp {
         if (filledCount > 0) {
             Utils.showNotification(`Bucket filled ${filledCount} areas`, 'success');
             canvasRenderer.render();
+        } else {
+            Utils.showNotification('No adjacent same color area found', 'warning');
         }
 
-        // 填充后自动停用油漆桶
-        this.bucketTool.isActive = false;
-        this.elements.autoFillBtn.classList.remove('bucket-active');
-        this.elements.autoFillBtn.textContent = '🪣 Bucket';
-        
-        // 恢复默认光标
-        if (canvasRenderer && canvasRenderer.canvas) {
-            canvasRenderer.canvas.style.cursor = 'crosshair';
-        }
+        // Bucket模式保持激活状态，不自动关闭
     }
 
     /**
@@ -2373,6 +2379,8 @@ class ColorByNumbersApp {
             console.error('Error cleaning up gallery entries:', error);
         }
     }
+
+
 }
 
 // 全局测试函数（可在浏览器控制台调用）
