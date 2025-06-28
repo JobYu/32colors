@@ -45,6 +45,7 @@ body {
     margin-top: 20px;
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: 15px;
 }
 
@@ -70,6 +71,21 @@ body {
     background: rgba(255, 255, 255, 0.9);
     color: #333;
     border-color: rgba(255, 255, 255, 0.9);
+}
+
+/* App Store 下载链接样式 */
+.app-store-link {
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.app-store-link:hover {
+    transform: translateY(-2px);
+}
+
+.app-store-link img {
+    border-radius: 8px;
 }
 
 /* 输入区域样式 */
