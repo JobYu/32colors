@@ -877,7 +877,8 @@ class CanvasRenderer {
         
         // 根据缩放级别决定是否使用扩展搜索
         const scale = this.transform.scale;
-        const needsExpansion = this.isMobileDevice() ? scale < 2 : scale < 3;
+        // 降低桌面端的扩展搜索阈值，让它更容易触发扩展搜索
+        const needsExpansion = this.isMobileDevice() ? scale < 2.5 : scale < 2;
         
         if (!needsExpansion) {
             console.log(`[点击检测] ❌ 缩放级别${scale.toFixed(2)}足够高，无精确匹配，不使用扩展搜索`);
@@ -886,8 +887,8 @@ class CanvasRenderer {
         
         console.log(`[点击检测] 🔍 开始扩展搜索...`);
         
-        // 低缩放时使用小范围精确扩展
-        const maxOffset = this.isMobileDevice() ? 1 : 0.5;
+        // 增加桌面端的扩展搜索范围，让它更容易命中
+        const maxOffset = this.isMobileDevice() ? 1.2 : 1.5;
         const searchPoints = [
             { dx: 0, dy: 0 },           // 再次检查中心点
             { dx: -maxOffset, dy: 0 },
