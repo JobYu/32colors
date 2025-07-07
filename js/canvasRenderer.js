@@ -584,13 +584,8 @@ class CanvasRenderer {
      * @returns {boolean} 是否可以点击
      */
     canClick() {
-        // 大幅降低点击要求，让用户更容易点击
-        if (this.isMobileDevice()) {
-            return this.transform.scale >= this.settings.mobileMinZoomForClick; // 移动端0.8倍缩放即可点击
-        }
-        
-        // 桌面端也降低要求
-        return this.transform.scale >= this.settings.minZoomForClick; // 桌面端1倍缩放即可点击
+        // 统一使用移动端的点击要求，让桌面端和移动端体验一致
+        return this.transform.scale >= this.settings.mobileMinZoomForClick; // 0.8倍缩放即可点击
     }
 
     /**
@@ -739,8 +734,8 @@ class CanvasRenderer {
                 y: touch.clientY - rect.top
             }));
 
-            // 只有移动距离超过阈值才认为是移动，避免轻微抖动影响点击
-            const moveThreshold = this.isMobileDevice() ? 15 : 8; // 大幅提高移动端容忍度，减少误判
+            // 统一使用移动端的移动阈值，减少误判
+            const moveThreshold = 15; // 统一使用较高的容忍度
             if (currentTouches.length === 1 && this.interaction.touches.length === 1) {
                 const deltaX = currentTouches[0].x - this.interaction.touches[0].x;
                 const deltaY = currentTouches[0].y - this.interaction.touches[0].y;
@@ -875,10 +870,9 @@ class CanvasRenderer {
             return cell;
         }
         
-        // 根据缩放级别决定是否使用扩展搜索
+        // 统一移动端和桌面端的点击检测算法
         const scale = this.transform.scale;
-        // 降低桌面端的扩展搜索阈值，让它更容易触发扩展搜索
-        const needsExpansion = this.isMobileDevice() ? scale < 2.5 : scale < 2;
+        const needsExpansion = scale < 2.5; // 使用移动端的阈值
         
         if (!needsExpansion) {
             console.log(`[点击检测] ❌ 缩放级别${scale.toFixed(2)}足够高，无精确匹配，不使用扩展搜索`);
@@ -887,8 +881,8 @@ class CanvasRenderer {
         
         console.log(`[点击检测] 🔍 开始扩展搜索...`);
         
-        // 增加桌面端的扩展搜索范围，让它更容易命中
-        const maxOffset = this.isMobileDevice() ? 1.2 : 1.5;
+        // 统一使用移动端的扩展搜索范围
+        const maxOffset = 1.2;
         const searchPoints = [
             { dx: 0, dy: 0 },           // 再次检查中心点
             { dx: -maxOffset, dy: 0 },
@@ -927,8 +921,8 @@ class CanvasRenderer {
         const { gameGrid } = this.gameData;
         
         // 改进点击区域计算：低缩放时扩大点击区域，高缩放时保持精确度
-        // 基础扩展半径根据设备类型设定
-        const baseRadius = this.isMobileDevice() ? 3.0 : 2.0;
+        // 统一使用移动端的基础扩展半径
+        const baseRadius = 3.0;
         
         // 缩放因子：低缩放时使用更大的扩展区域
         let scaleFactor;
