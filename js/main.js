@@ -1602,64 +1602,78 @@ class ColorByNumbersApp {
      * @param {string} imageIdentifier - The path or name for context.
      */
     async generateCompletedGameView(imageToProcess, artworkEntry, imageIdentifier) {
-        if (!imageToProcess || this.isProcessing) return;
-
-        this._resetPreviousGameDisplay(); // Clear previous game state and UI
-
-        this.isProcessing = true;
-        this.showLoading('Preparing completed artwork view...');
-
         try {
-            const options = {
-                colorCount: 16, // Always use 16 colors for reprocessing, ignore saved palette length
-                gridSize: 'pixel',
-                algorithm: 'kmeans' // Or determine from artworkEntry if stored
-            };
+            this.showLoading('Loading completed artwork...');
+            
+            const imageName = Utils.getFileName(imageIdentifier);
 
-            // Reprocess the image to get the original gameGrid structure
-            const gameData = await imageProcessor.processImage(imageToProcess, options);
+            // 只保留高清网格下载按钮，并使其成为主要操作
+            const modalContent = `
+                <div class="completed-game-view">
+                    <h3>${imageName}</h3>
+                    <p>Completed on: ${new Date(artworkEntry.completedDate).toLocaleString()}</p>
+                    <img src="${artworkEntry.completedImageDataUrl}" alt="Completed artwork: ${imageName}" style="max-width: 100%; border-radius: 8px;">
+                    <div class="share-options-container" style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
+                        <button class="share-btn download-btn-main" data-action="download-hd-grid" data-image-name="${imageName}" data-image-data-url="${artworkEntry.completedImageDataUrl}" style="flex-grow: 1;">
+                            📥 Download
+                        </button>
+                        <button class="share-btn" data-action="delete-artwork" data-image-name="${imageName}" data-image-path="${artworkEntry.path}">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            `;
 
-            // Mark all non-transparent cells as revealed
-            if (gameData.gameGrid) {
-                for (const row of gameData.gameGrid) {
-                    for (const cell of row) {
-                        if (cell && !cell.isTransparent) {
-                            cell.revealed = true;
+            // 显示模态框
+            this.elements.modalContent.innerHTML = modalContent;
+            this.showModal();
+
+            // 为新按钮设置事件监听
+            this.elements.modalContent.querySelector('.share-options-container').addEventListener('click', async (e) => {
+                const button = e.target.closest('.share-btn');
+                if (!button) return;
+
+                const action = button.dataset.action;
+
+                const processDownload = async (action, button) => {
+                    try {
+                        this.showLoading('Preparing download...');
+                        
+                        const imageName = button.dataset.imageName;
+                        const completedImageDataUrl = button.dataset.imageDataUrl;
+                
+                        switch (action) {
+                            case 'download-hd-grid':
+                                await this.processGridDownload(imageName, completedImageDataUrl);
+                                break;
                         }
+                    } catch (error) {
+                        console.error(`Error during ${action} for ${imageName}:`, error);
+                        Utils.showNotification('Download failed, please try again.', 'error');
+                    } finally {
+                        this.hideLoading();
                     }
+                };
+
+                if (action === 'delete-artwork') {
+                    const imagePath = button.dataset.imagePath;
+                    const confirmed = confirm(`Are you sure you want to delete your artwork for "${imageName}"? This cannot be undone.`);
+                    if (confirmed) {
+                        await galleryManager.deleteUserArtwork(imagePath);
+                        this.hideModal();
+                        Utils.showNotification(`Artwork "${imageName}" deleted.`, 'info');
+                        // Refresh the user gallery view if it's visible
+                        this.refreshGalleryDisplay();
+                    }
+                } else if (action.startsWith('download-')) {
+                    await processDownload(action, button);
                 }
-            }
-            
-            // Initialize game engine with this fully revealed gameData
-            gameEngine.initGame(gameData);
-            
-            // Set renderer data
-            canvasRenderer.setGameData(gameEngine.getGameData());
-            
-            // Generate legend (will show all counts as 0 or '✓')
-            this.generateLegend(gameData.palette);
-            
-            // Manually set game state to completed in gameEngine
-            // This requires gameEngine to have a method to set a game as complete or load such state.
-            // For now, we can simulate the stats of a completed game.
-            gameEngine.setGameAsCompleted(artworkEntry.playTime || 0, false); // Don't emit complete event to avoid modal popup
-            
-            // Update game info to reflect completion
-            this.updateGameInfo(gameEngine.getGameStats());
-            this.updateLegend(); // Ensure legend shows completed state
-            
-            Utils.showNotification(
-                `Displaying completed artwork: ${artworkEntry.name}`,
-                'success',
-                4000
-            );
-            this.showGamePage();
+            });
 
         } catch (error) {
-            Utils.showNotification(`Failed to display completed artwork: ${error.message}`, 'error');
             console.error("Error in generateCompletedGameView:", error);
+            Utils.showNotification("Failed to load completed artwork.", "error");
         } finally {
-            this.isProcessing = false;
             this.hideLoading();
         }
     }
