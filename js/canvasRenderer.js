@@ -1035,17 +1035,14 @@ class CanvasRenderer {
         // CRITICAL: Ensure canvas is cleared with transparency, not default opaque white
         exportCtx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
 
-        // Apply scaling
+        // --- 绘制主要内容 ---
+        exportCtx.save(); // 保存当前（初始）变换状态
         exportCtx.scale(scale, scale);
+        this.renderFullGameGrid(exportCtx, true, showGrid, scale); // 绘制游戏网格
+        exportCtx.restore(); // 恢复到初始状态，移除所有缩放效果
 
-        // Render the game grid onto the export canvas
-        // Make sure to use a version of render that respects transparency
-        this.renderFullGameGrid(exportCtx, true, showGrid, scale); // Pass scale for grid line width calculation
-
-        // 重置变换，确保水印在正确的坐标系中绘制，不受缩放影响
-        exportCtx.setTransform(1, 0, 0, 1, 0, 0);
-        
-        // 在此处添加水印
+        // --- 绘制水印 ---
+        // 现在我们在一个干净、未缩放的坐标系上绘制水印
         this.addWatermark(exportCtx, exportCanvas.width, exportCanvas.height);
 
         console.log(`[CanvasRenderer] Export completed. Canvas size: ${exportCanvas.width}x${exportCanvas.height}`);
