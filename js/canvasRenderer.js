@@ -22,10 +22,11 @@ class CanvasRenderer {
             showGrid: true,
             showNumbers: true,
             showOriginal: false,
-            minZoomForClick: 1.5,  // 进一步降低最小点击缩放要求
+            minZoomForClick: 1.0,  // 降低最小点击缩放要求，桌面端1倍即可点击
+            mobileMinZoomForClick: 0.8, // 移动端0.8倍即可点击
             maxZoom: 100,          // 大幅提高像素模式最大缩放，支持超精细查看
             gridModeMaxZoom: 60,   // 提高网格模式最大缩放
-            minZoom: 1,            // 最小100%缩放
+            minZoom: 0.5,          // 最小50%缩放，让用户可以看到更多内容
             zoomFactor: 1.5,       // 增加每次放大倍数到50%，更快达到高缩放
             gridModeThreshold: 12  // 12倍缩放时切换到网格模式（500% * 1.2^6 ≈ 12倍）
         };
@@ -67,29 +68,29 @@ class CanvasRenderer {
         
         const { dimensions } = this.gameData;
         
-        // 根据设备类型设置不同的初始缩放，大幅提高初始显示大小
+        // 根据设备类型设置合理的初始缩放，既要便于点击又要保持良好的视觉效果
         let scale;
         if (this.isMobileDevice()) {
-            // 移动端：根据图片大小动态调整，大幅提高初始缩放
+            // 移动端：根据图片大小动态调整，平衡可见性和点击精度
             if (Math.max(dimensions.width, dimensions.height) <= 16) {
-                scale = 30; // 小图片放大更多，便于点击
+                scale = 12; // 小图片适度放大，便于点击
             } else if (Math.max(dimensions.width, dimensions.height) <= 32) {
-                scale = 20; // 中等图片适中放大
+                scale = 8;  // 中等图片适中放大
             } else if (Math.max(dimensions.width, dimensions.height) <= 64) {
-                scale = 15; // 较大图片适度放大
+                scale = 6;  // 较大图片适度放大
             } else {
-                scale = 10; // 大图片保证点击精度
+                scale = 4;  // 大图片保证基本点击精度
             }
         } else {
-            // 桌面端：大幅提高初始缩放到15倍
+            // 桌面端：适中的初始缩放
             if (Math.max(dimensions.width, dimensions.height) <= 16) {
-                scale = 25; // 小图片特别放大
+                scale = 10; // 小图片适度放大
             } else if (Math.max(dimensions.width, dimensions.height) <= 32) {
-                scale = 18; // 中等图片大幅放大
+                scale = 8;  // 中等图片适中放大
             } else if (Math.max(dimensions.width, dimensions.height) <= 64) {
-                scale = 12; // 较大图片适度放大
+                scale = 5;  // 较大图片适度放大
             } else {
-                scale = 8;  // 大图片保证显示完整
+                scale = 3;  // 大图片保证显示完整
             }
         }
         
@@ -99,11 +100,9 @@ class CanvasRenderer {
         const maxFitScale = Math.min(maxFitScaleX, maxFitScaleY);
 
         if (scale > maxFitScale && maxFitScale > 0) {
-            // 在移动端，如果计算的缩放太大，使用适合屏幕的缩放
-            if (this.isMobileDevice()) {
-                scale = Math.max(4, maxFitScale); // 移动端最小4倍缩放，便于点击
-            }
-            // 桌面端保持原有逻辑，优先10倍缩放
+            // 如果计算的缩放太大，使用适合屏幕的缩放
+            const minClickScale = this.isMobileDevice() ? this.settings.mobileMinZoomForClick : this.settings.minZoomForClick;
+            scale = Math.max(minClickScale, maxFitScale); // 确保达到最小点击缩放要求
         }
         
         // 确保缩放不小于最小值
@@ -639,13 +638,13 @@ class CanvasRenderer {
      * @returns {boolean} 是否可以点击
      */
     canClick() {
-        // 移动端降低点击要求
+        // 大幅降低点击要求，让用户更容易点击
         if (this.isMobileDevice()) {
-            return this.transform.scale >= 1.2; // 移动端1.2倍缩放即可点击
+            return this.transform.scale >= this.settings.mobileMinZoomForClick; // 移动端0.8倍缩放即可点击
         }
         
-        // 桌面端保持较高要求
-        return this.transform.scale >= this.settings.minZoomForClick;
+        // 桌面端也降低要求
+        return this.transform.scale >= this.settings.minZoomForClick; // 桌面端1倍缩放即可点击
     }
 
     /**
@@ -809,7 +808,7 @@ class CanvasRenderer {
             }));
 
             // 只有移动距离超过阈值才认为是移动，避免轻微抖动影响点击
-            const moveThreshold = this.isMobileDevice() ? 8 : 4; // 移动端容忍度更高
+            const moveThreshold = this.isMobileDevice() ? 15 : 8; // 大幅提高移动端容忍度，减少误判
             if (currentTouches.length === 1 && this.interaction.touches.length === 1) {
                 const deltaX = currentTouches[0].x - this.interaction.touches[0].x;
                 const deltaY = currentTouches[0].y - this.interaction.touches[0].y;
@@ -936,11 +935,24 @@ class CanvasRenderer {
         
         const { gameGrid } = this.gameData;
         
-        // 根据当前缩放级别动态调整点击区域
-        // 缩放越小，扩展区域越大；缩放越大，扩展区域可以更精确
-        const baseRadius = this.isMobileDevice() ? 2.0 : 1.0;
-        const scaleFactor = Math.max(0.2, Math.min(1.0, this.transform.scale / 10));
-        const expandRadius = baseRadius * (1 - scaleFactor * 0.7);
+        // 改进点击区域计算：低缩放时扩大点击区域，高缩放时保持精确度
+        // 基础扩展半径根据设备类型设定
+        const baseRadius = this.isMobileDevice() ? 3.0 : 2.0;
+        
+        // 缩放因子：低缩放时使用更大的扩展区域
+        let scaleFactor;
+        if (this.transform.scale < 2) {
+            // 低缩放级别：使用较大的扩展区域
+            scaleFactor = Math.max(1.5, 3.0 / this.transform.scale);
+        } else if (this.transform.scale < 5) {
+            // 中等缩放级别：逐渐减少扩展区域
+            scaleFactor = 1.5 - (this.transform.scale - 2) * 0.1;
+        } else {
+            // 高缩放级别：使用较小但仍然有效的扩展区域
+            scaleFactor = Math.max(0.8, 1.0);
+        }
+        
+        const expandRadius = baseRadius * scaleFactor;
         
         // 首先尝试精确匹配
         let cell = this.getCellAt(x, y);
