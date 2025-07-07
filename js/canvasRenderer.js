@@ -36,8 +36,7 @@ class CanvasRenderer {
             isDragging: false,
             lastMousePos: { x: 0, y: 0 },
             highlightedNumber: null,
-            hoveredCell: null,           // 当前悬停的格子
-            lastHoverCheck: 0,           // 上次悬停检查时间，用于性能优化
+            // 移除hoveredCell和lastHoverCheck，因为不再需要悬停高亮
             // 触摸相关状态
             touches: [],
             lastTouchDistance: 0,
@@ -330,47 +329,14 @@ class CanvasRenderer {
             this.ctx.strokeRect(x, y, width, height);
         }
         
-        // Highlight selected number
+        // Highlight selected number (保留图例选择时的黄色高亮)
         if (this.interaction.highlightedNumber !== null && this.interaction.highlightedNumber === number && !revealed) {
             this.ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
             this.ctx.fillRect(x, y, width, height);
         }
 
-        // Highlight hovered cell
-        if (this.interaction.hoveredCell === cell && this.canClick()) {
-            if (revealed) {
-                // 已填充的格子：添加内嵌的亮白色边框，避免超出格子边界
-                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-                const borderWidth = Math.max(1, 2 / this.transform.scale);
-                this.ctx.lineWidth = borderWidth;
-                
-                // 内嵌边框，确保不超出格子边界
-                const halfBorder = borderWidth / 2;
-                this.ctx.strokeRect(
-                    x + halfBorder, 
-                    y + halfBorder, 
-                    width - borderWidth, 
-                    height - borderWidth
-                );
-            } else {
-                // 未填充的格子：蓝色高亮完全覆盖格子区域
-                this.ctx.fillStyle = 'rgba(0, 123, 255, 0.25)';
-                this.ctx.fillRect(x, y, width, height);
-                
-                // 内嵌边框，确保边框在格子内部
-                this.ctx.strokeStyle = 'rgba(0, 123, 255, 0.8)';
-                const borderWidth = Math.max(1, 2 / this.transform.scale);
-                this.ctx.lineWidth = borderWidth;
-                
-                const halfBorder = borderWidth / 2;
-                this.ctx.strokeRect(
-                    x + halfBorder, 
-                    y + halfBorder, 
-                    width - borderWidth, 
-                    height - borderWidth
-                );
-            }
-        }
+        // 移除悬停高亮效果 - 用户不希望看到绿色/蓝色方格
+        // 点击应该直接生效，不需要悬停预览
     }
 
     /**
@@ -568,28 +534,7 @@ class CanvasRenderer {
         this.render();
     }
 
-    /**
-     * 设置悬停的格子
-     * @param {object} cell - 悬停的格子
-     */
-    setHoveredCell(cell) {
-        if (this.interaction.hoveredCell !== cell) {
-            this.interaction.hoveredCell = cell;
-            this.updateCursorStyle(cell);
-            this.render();
-        }
-    }
-
-    /**
-     * 清除悬停状态
-     */
-    clearHoveredCell() {
-        if (this.interaction.hoveredCell !== null) {
-            this.interaction.hoveredCell = null;
-            this.updateCursorStyle(null);
-            this.render();
-        }
-    }
+    // 移除了setHoveredCell和clearHoveredCell方法，因为不再需要悬停高亮功能
 
     /**
      * 更新鼠标样式
@@ -601,8 +546,9 @@ class CanvasRenderer {
         } else if (this.bucketToolActive) {
             // Bucket tool 激活时使用特殊光标
             this.canvas.style.cursor = 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTQgNEwxOCA4TDE2IDEwTDE0IDhMMTIgMTBMMTAgOEw4IDEwTDYgOEwxMCA0TDEyIDJaIiBzdHJva2U9IiMwMDAiIGZpbGw9IiNmZmYiLz4KPC9zdmc+") 12 12, pointer';
-        } else if (cell && this.canClick()) {
-            this.canvas.style.cursor = 'pointer'; // 改为手指形状
+        } else if (cell) {
+            // 有方格就显示pointer，去掉canClick检查
+            this.canvas.style.cursor = 'pointer';
         } else {
             this.canvas.style.cursor = 'crosshair';
         }
@@ -614,7 +560,7 @@ class CanvasRenderer {
      */
     setBucketToolActive(active) {
         this.bucketToolActive = active;
-        this.updateCursorStyle(this.interaction.hoveredCell);
+        this.updateCursorStyle(null);
     }
 
     /**
@@ -681,15 +627,11 @@ class CanvasRenderer {
             }
         });
 
-        // 鼠标悬停检测
+        // 鼠标悬停检测（简化版 - 只更新光标样式）
         this.canvas.addEventListener('mousemove', (e) => {
             if (this.interaction.isDragging) return;
             
-            // 性能优化：限制悬停检测频率
-            const now = Date.now();
-            if (now - this.interaction.lastHoverCheck < 16) return; // 约60fps
-            this.interaction.lastHoverCheck = now;
-            
+            // 简化悬停检测，只更新光标样式，不需要高亮显示
             const rect = this.canvas.getBoundingClientRect();
             const screenX = e.clientX - rect.left;
             const screenY = e.clientY - rect.top;
@@ -697,17 +639,18 @@ class CanvasRenderer {
             const worldPos = this.screenToWorld(screenX, screenY);
             const cell = this.getCellAtWithExpandedHitArea(worldPos.x, worldPos.y);
             
-            this.setHoveredCell(cell);
+            // 只更新光标样式
+            this.updateCursorStyle(cell);
         });
 
-        // 鼠标离开画布时清除悬停状态
+        // 鼠标离开画布时清除状态
         this.canvas.addEventListener('mouseleave', () => {
-            this.clearHoveredCell();
+            this.updateCursorStyle(null);
         });
 
         document.addEventListener('mouseup', () => {
             this.interaction.isDragging = false;
-            this.updateCursorStyle(this.interaction.hoveredCell);
+            this.updateCursorStyle(null);
         });
 
         // 点击填色
@@ -722,33 +665,13 @@ class CanvasRenderer {
             // 桌面端也使用扩展点击区域提高精确度
             const cell = this.getCellAtWithExpandedHitArea(worldPos.x, worldPos.y);
             
-            if (cell && this.canClick()) {
+            if (cell) {
                 // 触发填色事件，使用requestAnimationFrame提高响应速度
+                // 移除canClick()检查，让任何方格都能直接点击
                 requestAnimationFrame(() => {
                     const event = new CustomEvent('cellClick', { detail: cell });
                     this.canvas.dispatchEvent(event);
                 });
-            }
-        });
-
-        // 鼠标悬停
-        this.canvas.addEventListener('mousemove', (e) => {
-            if (this.interaction.isDragging) return;
-            
-            const rect = this.canvas.getBoundingClientRect();
-            const screenX = e.clientX - rect.left;
-            const screenY = e.clientY - rect.top;
-            
-            const worldPos = this.screenToWorld(screenX, screenY);
-            const cell = this.getCellAt(worldPos.x, worldPos.y);
-            
-            // 更新高亮状态
-            if (cell && cell.number !== this.interaction.highlightedNumber) {
-                this.interaction.highlightedNumber = cell.number;
-                this.render();
-            } else if (!cell && this.interaction.highlightedNumber) {
-                this.interaction.highlightedNumber = null;
-                this.render();
             }
         });
 
@@ -877,8 +800,9 @@ class CanvasRenderer {
                 const worldPos = this.screenToWorld(touch.x, touch.y);
                 const cell = this.getCellAtWithExpandedHitArea(worldPos.x, worldPos.y);
                 
-                if (cell && this.canClick()) {
+                if (cell) {
                     // 使用requestAnimationFrame确保立即响应
+                    // 移除canClick()检查，让任何方格都能直接点击
                     requestAnimationFrame(() => {
                         const event = new CustomEvent('cellClick', { detail: cell });
                         this.canvas.dispatchEvent(event);
@@ -1146,7 +1070,7 @@ class CanvasRenderer {
         
         this.gameData = null;
         this.interaction.highlightedNumber = null;
-        this.interaction.hoveredCell = null;
+        // 移除hoveredCell清理，因为不再需要
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
