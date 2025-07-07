@@ -534,8 +534,6 @@ class CanvasRenderer {
         this.render();
     }
 
-    // 移除了setHoveredCell和clearHoveredCell方法，因为不再需要悬停高亮功能
-
     /**
      * 更新鼠标样式
      * @param {object} cell - 当前悬停的格子
@@ -747,7 +745,7 @@ class CanvasRenderer {
                 return { id: touch.identifier, x, y };
             });
 
-            // 统一使用移动端的移动阈值，减少误判
+            // 统一移动端和桌面端的移动阈值，减少误判
             const moveThreshold = 15;
             if (currentTouches.length === 1 && this.interaction.touches.length === 1) {
                 const deltaX = currentTouches[0].x - this.interaction.touches[0].x;
@@ -935,7 +933,7 @@ class CanvasRenderer {
         // 统一使用移动端的基础扩展半径
         const baseRadius = 3.0;
         
-        // 缩放因子：低缩放时使用更大的扩展区域
+        // 缩放因子：低缩放级别：使用较大的扩展区域
         let scaleFactor;
         if (this.transform.scale < 2) {
             // 低缩放级别：使用较大的扩展区域
@@ -1037,8 +1035,38 @@ class CanvasRenderer {
         // Make sure to use a version of render that respects transparency
         this.renderFullGameGrid(exportCtx, true, showGrid, scale); // Pass scale for grid line width calculation
 
+        // 在此处添加水印
+        this.addWatermark(exportCtx, exportCanvas.width, exportCanvas.height);
+
         console.log(`[CanvasRenderer] Export completed. Canvas size: ${exportCanvas.width}x${exportCanvas.height}`);
         return exportCanvas.toDataURL('image/png');
+    }
+
+    /**
+     * 在指定的Canvas上下文上添加水印
+     * @param {CanvasRenderingContext2D} ctx - 要添加水印的画布上下文
+     * @param {number} width - 画布宽度
+     * @param {number} height - 画布高度
+     */
+    addWatermark(ctx, width, height) {
+        const watermarkText = '32colors.com';
+        
+        // 动态计算字体大小，基于画布宽度的2.5%，最小不小于10px
+        const fontSize = Math.max(10, width * 0.025);
+        ctx.font = `bold ${fontSize}px "Helvetica Neue", Arial, sans-serif`;
+        
+        // 设置水印颜色和透明度
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        
+        // 设置文本对齐方式，从右下角开始绘制
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        
+        // 计算边距，基于字体大小
+        const margin = fontSize * 0.5;
+        
+        // 绘制水印
+        ctx.fillText(watermarkText, width - margin, height - margin);
     }
 
     /**
