@@ -637,7 +637,7 @@ class CanvasRenderer {
             const screenY = e.clientY - rect.top;
             
             const worldPos = this.screenToWorld(screenX, screenY);
-            const cell = this.getCellAtWithExpandedHitArea(worldPos.x, worldPos.y);
+            const cell = this.getSmartCellAt(worldPos.x, worldPos.y);
             
             // 只更新光标样式
             this.updateCursorStyle(cell);
@@ -661,17 +661,26 @@ class CanvasRenderer {
             const screenX = e.clientX - rect.left;
             const screenY = e.clientY - rect.top;
             
+            console.log(`[坐标转换] 屏幕坐标: (${screenX.toFixed(2)}, ${screenY.toFixed(2)})`);
+            console.log(`[坐标转换] Canvas尺寸: ${this.canvas.width}x${this.canvas.height}`);
+            console.log(`[坐标转换] 变换状态: 缩放=${this.transform.scale.toFixed(2)}, 平移=(${this.transform.translateX.toFixed(2)}, ${this.transform.translateY.toFixed(2)})`);
+            
             const worldPos = this.screenToWorld(screenX, screenY);
-            // 桌面端也使用扩展点击区域提高精确度
-            const cell = this.getCellAtWithExpandedHitArea(worldPos.x, worldPos.y);
+            console.log(`[坐标转换] 世界坐标: (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)})`);
+            
+            // 使用智能点击检测提高精确度
+            const cell = this.getSmartCellAt(worldPos.x, worldPos.y);
             
             if (cell) {
+                console.log(`[点击结果] 成功找到格子，准备填色...`);
                 // 触发填色事件，使用requestAnimationFrame提高响应速度
                 // 移除canClick()检查，让任何方格都能直接点击
                 requestAnimationFrame(() => {
                     const event = new CustomEvent('cellClick', { detail: cell });
                     this.canvas.dispatchEvent(event);
                 });
+            } else {
+                console.log(`[点击结果] ❌ 未找到可点击的格子`);
             }
         });
 
@@ -798,7 +807,7 @@ class CanvasRenderer {
                 // 快速点击 - 填色，使用requestAnimationFrame提高响应速度
                 const touch = this.interaction.touches[0];
                 const worldPos = this.screenToWorld(touch.x, touch.y);
-                const cell = this.getCellAtWithExpandedHitArea(worldPos.x, worldPos.y);
+                const cell = this.getSmartCellAt(worldPos.x, worldPos.y);
                 
                 if (cell) {
                     // 使用requestAnimationFrame确保立即响应
@@ -846,6 +855,63 @@ class CanvasRenderer {
             x: (touch1.x + touch2.x) / 2,
             y: (touch1.y + touch2.y) / 2
         };
+    }
+
+    /**
+     * 智能点击检测 - 根据缩放级别选择最佳检测策略
+     * @param {number} x - 世界坐标X
+     * @param {number} y - 世界坐标Y
+     * @returns {object} 单元格数据
+     */
+    getSmartCellAt(x, y) {
+        if (!this.gameData || !this.gameData.gameGrid) return null;
+        
+        console.log(`[点击检测] 世界坐标: (${x.toFixed(2)}, ${y.toFixed(2)}), 缩放: ${this.transform.scale.toFixed(2)}`);
+        
+        // 首先尝试精确匹配
+        let cell = this.getCellAt(x, y);
+        if (cell) {
+            console.log(`[点击检测] ✅ 精确匹配成功: 格子(${cell.col}, ${cell.row}), 数字: ${cell.number}, 已填充: ${cell.revealed}`);
+            return cell;
+        }
+        
+        // 根据缩放级别决定是否使用扩展搜索
+        const scale = this.transform.scale;
+        const needsExpansion = this.isMobileDevice() ? scale < 2 : scale < 3;
+        
+        if (!needsExpansion) {
+            console.log(`[点击检测] ❌ 缩放级别${scale.toFixed(2)}足够高，无精确匹配，不使用扩展搜索`);
+            return null;
+        }
+        
+        console.log(`[点击检测] 🔍 开始扩展搜索...`);
+        
+        // 低缩放时使用小范围精确扩展
+        const maxOffset = this.isMobileDevice() ? 1 : 0.5;
+        const searchPoints = [
+            { dx: 0, dy: 0 },           // 再次检查中心点
+            { dx: -maxOffset, dy: 0 },
+            { dx: maxOffset, dy: 0 },
+            { dx: 0, dy: -maxOffset },
+            { dx: 0, dy: maxOffset },
+            { dx: -maxOffset, dy: -maxOffset },
+            { dx: maxOffset, dy: -maxOffset },
+            { dx: -maxOffset, dy: maxOffset },
+            { dx: maxOffset, dy: maxOffset }
+        ];
+        
+        for (const point of searchPoints) {
+            const testX = x + point.dx;
+            const testY = y + point.dy;
+            cell = this.getCellAt(testX, testY);
+            if (cell) {
+                console.log(`[点击检测] ✅ 扩展搜索找到: 格子(${cell.col}, ${cell.row}), 数字: ${cell.number}, 测试坐标(${testX.toFixed(2)}, ${testY.toFixed(2)}), 偏移(${point.dx}, ${point.dy})`);
+                return cell;
+            }
+        }
+        
+        console.log(`[点击检测] ❌ 扩展搜索也未找到有效格子`);
+        return null;
     }
 
     /**
