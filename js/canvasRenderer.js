@@ -215,7 +215,14 @@ class CanvasRenderer {
      * 渲染游戏网格（像素级别 - 修复高缩放灰色问题）
      */
     renderGameGrid() {
+        // 双重保险：在渲染前再次检查gameData是否存在，防止在异步调用中被清除
+        if (!this.gameData) {
+            console.warn('[CanvasRenderer] renderGameGrid called with null gameData. Aborting render.');
+            return;
+        }
+
         const { gameGrid, dimensions } = this.gameData;
+        const { scale } = this.transform;
         
         // 绘制背景
         this.ctx.fillStyle = '#ffffff';
@@ -1035,6 +1042,9 @@ class CanvasRenderer {
         // Make sure to use a version of render that respects transparency
         this.renderFullGameGrid(exportCtx, true, showGrid, scale); // Pass scale for grid line width calculation
 
+        // 重置变换，确保水印在正确的坐标系中绘制，不受缩放影响
+        exportCtx.setTransform(1, 0, 0, 1, 0, 0);
+        
         // 在此处添加水印
         this.addWatermark(exportCtx, exportCanvas.width, exportCanvas.height);
 
