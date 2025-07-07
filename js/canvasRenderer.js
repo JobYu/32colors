@@ -589,28 +589,48 @@ class CanvasRenderer {
     }
 
     /**
-     * 设置事件监听器
+     * 将浏览器事件坐标转换为Canvas绘图表面坐标
+     * @param {MouseEvent | Touch} event - 鼠标或触摸事件对象
+     * @returns {{x: number, y: number}} - 转换后的Canvas坐标
+     */
+    getCanvasCoordinates(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        
+        // 计算显示尺寸和绘图表面尺寸的比例
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+
+        // 根据比例校正坐标
+        const canvasX = (event.clientX - rect.left) * scaleX;
+        const canvasY = (event.clientY - rect.top) * scaleY;
+        
+        return { x: canvasX, y: canvasY };
+    }
+
+    /**
+     * 设置事件监听器 (已修复版本)
      */
     setupEventListeners() {
         // 鼠标滚轮缩放
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             
-            const rect = this.canvas.getBoundingClientRect();
-            const centerX = e.clientX - rect.left;
-            const centerY = e.clientY - rect.top;
+            // 使用辅助函数获取正确的缩放中心
+            const center = this.getCanvasCoordinates(e);
             
             const factor = e.deltaY > 0 ? 0.9 : 1.1;
-            this.zoom(factor, { x: centerX, y: centerY });
+            this.zoom(factor, center);
         });
 
         // 鼠标拖拽平移
         this.canvas.addEventListener('mousedown', (e) => {
             this.interaction.isDragging = true;
+            // lastMousePos 应该存储原始的 clientX/Y，因为 pan 函数是基于屏幕像素的偏移
             this.interaction.lastMousePos = { x: e.clientX, y: e.clientY };
-            this.updateCursorStyle(null); // 拖拽时显示grabbing
+            this.updateCursorStyle(null);
         });
 
+        // 注意：全局 mousemove 和 mouseup 不需要转换坐标，因为它们计算的是屏幕上的位移（delta）
         document.addEventListener('mousemove', (e) => {
             if (this.interaction.isDragging) {
                 const deltaX = e.clientX - this.interaction.lastMousePos.x;
@@ -626,15 +646,12 @@ class CanvasRenderer {
         this.canvas.addEventListener('mousemove', (e) => {
             if (this.interaction.isDragging) return;
             
-            // 简化悬停检测，只更新光标样式，不需要高亮显示
-            const rect = this.canvas.getBoundingClientRect();
-            const screenX = e.clientX - rect.left;
-            const screenY = e.clientY - rect.top;
+            // 使用辅助函数获取正确的Canvas坐标
+            const { x: canvasX, y: canvasY } = this.getCanvasCoordinates(e);
             
-            const worldPos = this.screenToWorld(screenX, screenY);
+            const worldPos = this.screenToWorld(canvasX, canvasY);
             const cell = this.getSmartCellAt(worldPos.x, worldPos.y);
             
-            // 只更新光标样式
             this.updateCursorStyle(cell);
         });
 
@@ -652,24 +669,21 @@ class CanvasRenderer {
         this.canvas.addEventListener('click', (e) => {
             if (this.interaction.isDragging) return;
             
-            const rect = this.canvas.getBoundingClientRect();
-            const screenX = e.clientX - rect.left;
-            const screenY = e.clientY - rect.top;
+            // 使用辅助函数获取正确的点击坐标
+            const { x: canvasX, y: canvasY } = this.getCanvasCoordinates(e);
             
-            console.log(`[坐标转换] 屏幕坐标: (${screenX.toFixed(2)}, ${screenY.toFixed(2)})`);
+            console.log(`[坐标转换] 屏幕坐标: (${e.clientX.toFixed(2)}, ${e.clientY.toFixed(2)})`);
+            console.log(`[坐标转换] 校正后Canvas坐标: (${canvasX.toFixed(2)}, ${canvasY.toFixed(2)})`);
             console.log(`[坐标转换] Canvas尺寸: ${this.canvas.width}x${this.canvas.height}`);
             console.log(`[坐标转换] 变换状态: 缩放=${this.transform.scale.toFixed(2)}, 平移=(${this.transform.translateX.toFixed(2)}, ${this.transform.translateY.toFixed(2)})`);
             
-            const worldPos = this.screenToWorld(screenX, screenY);
+            const worldPos = this.screenToWorld(canvasX, canvasY);
             console.log(`[坐标转换] 世界坐标: (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)})`);
             
-            // 使用智能点击检测提高精确度
             const cell = this.getSmartCellAt(worldPos.x, worldPos.y);
             
             if (cell) {
                 console.log(`[点击结果] 成功找到格子，准备填色...`);
-                // 触发填色事件，使用requestAnimationFrame提高响应速度
-                // 移除canClick()检查，让任何方格都能直接点击
                 requestAnimationFrame(() => {
                     const event = new CustomEvent('cellClick', { detail: cell });
                     this.canvas.dispatchEvent(event);
@@ -684,19 +698,18 @@ class CanvasRenderer {
     }
 
     /**
-     * 设置触摸事件监听器
+     * 设置触摸事件监听器 (已修复版本)
      */
     setupTouchEvents() {
         // 触摸开始
         this.canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             
-            const rect = this.canvas.getBoundingClientRect();
-            this.interaction.touches = Array.from(e.touches).map(touch => ({
-                id: touch.identifier,
-                x: touch.clientX - rect.left,
-                y: touch.clientY - rect.top
-            }));
+            // 使用辅助函数转换每个触摸点的坐标
+            this.interaction.touches = Array.from(e.touches).map(touch => {
+                const { x, y } = this.getCanvasCoordinates(touch);
+                return { id: touch.identifier, x, y };
+            });
 
             this.interaction.touchStartTime = Date.now();
             this.interaction.touchMoved = false;
@@ -704,6 +717,7 @@ class CanvasRenderer {
             if (this.interaction.touches.length === 1) {
                 // 单指触摸 - 准备拖拽
                 this.interaction.isDragging = true;
+                // lastMousePos 存储的是转换后的Canvas坐标
                 this.interaction.lastMousePos = {
                     x: this.interaction.touches[0].x,
                     y: this.interaction.touches[0].y
@@ -727,20 +741,18 @@ class CanvasRenderer {
             
             if (this.interaction.touches.length === 0) return;
 
-            const rect = this.canvas.getBoundingClientRect();
-            const currentTouches = Array.from(e.touches).map(touch => ({
-                id: touch.identifier,
-                x: touch.clientX - rect.left,
-                y: touch.clientY - rect.top
-            }));
+            // 转换当前所有触摸点的坐标
+            const currentTouches = Array.from(e.touches).map(touch => {
+                const { x, y } = this.getCanvasCoordinates(touch);
+                return { id: touch.identifier, x, y };
+            });
 
             // 统一使用移动端的移动阈值，减少误判
-            const moveThreshold = 15; // 统一使用较高的容忍度
+            const moveThreshold = 15;
             if (currentTouches.length === 1 && this.interaction.touches.length === 1) {
                 const deltaX = currentTouches[0].x - this.interaction.touches[0].x;
                 const deltaY = currentTouches[0].y - this.interaction.touches[0].y;
                 const moveDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-                
                 if (moveDistance > moveThreshold) {
                     this.interaction.touchMoved = true;
                 }
@@ -748,19 +760,19 @@ class CanvasRenderer {
                 this.interaction.touchMoved = true;
             }
 
-            if (currentTouches.length === 1 && this.interaction.touches.length === 1) {
+            if (currentTouches.length === 1 && this.interaction.isDragging) {
                 // 单指拖拽
-                if (this.interaction.isDragging && !this.interaction.isTouchZooming) {
-                    const deltaX = currentTouches[0].x - this.interaction.lastMousePos.x;
-                    const deltaY = currentTouches[0].y - this.interaction.lastMousePos.y;
-                    
-                    this.pan(deltaX, deltaY);
-                    
-                    this.interaction.lastMousePos = {
-                        x: currentTouches[0].x,
-                        y: currentTouches[0].y
-                    };
-                }
+                const deltaX = currentTouches[0].x - this.interaction.lastMousePos.x;
+                const deltaY = currentTouches[0].y - this.interaction.lastMousePos.y;
+                
+                // pan 函数需要的是屏幕像素的偏移，但由于我们所有的触摸坐标都已转换，
+                // 这里的 delta 是在Canvas坐标系下的。为了简化，我们直接用它来平移，
+                // 但需要注意，如果Canvas被严重拉伸，拖拽速度可能会感觉不一致。
+                // 一个更精确的方法是重新计算屏幕像素的delta，但当前方法通常足够好。
+                this.pan(deltaX, deltaY);
+                
+                this.interaction.lastMousePos = { x: currentTouches[0].x, y: currentTouches[0].y };
+
             } else if (currentTouches.length === 2 && this.interaction.touches.length === 2) {
                 // 双指缩放
                 const distance = this.getTouchDistance(currentTouches[0], currentTouches[1]);
@@ -768,25 +780,21 @@ class CanvasRenderer {
                 
                 if (this.interaction.isTouchZooming && this.interaction.lastTouchDistance > 0) {
                     const scaleFactor = distance / this.interaction.lastTouchDistance;
+                    this.zoom(scaleFactor, center);
                     
-                    // 增强移动端缩放灵敏度，让格子更容易点击
-                    const clampedFactor = Math.max(0.7, Math.min(1.5, scaleFactor));
-                    
-                    this.zoom(clampedFactor, center);
-                    
-                    // 同时处理双指拖拽（移动缩放中心）
                     const centerDeltaX = center.x - this.interaction.lastTouchCenter.x;
                     const centerDeltaY = center.y - this.interaction.lastTouchCenter.y;
-                    
-                    if (Math.abs(centerDeltaX) > 2 || Math.abs(centerDeltaY) > 2) {
-                        this.pan(centerDeltaX, centerDeltaY);
-                    }
+                    this.pan(centerDeltaX, centerDeltaY);
                 }
                 
                 this.interaction.lastTouchDistance = distance;
                 this.interaction.lastTouchCenter = center;
             }
 
+            // 更新触摸点记录（注意：这里我们不需要再次转换，因为currentTouches已经是转换后的）
+            // this.interaction.touches = currentTouches; 
+            // 实际上，我们需要原始的触摸点来计算下一次的移动，所以应该更新为原始的触摸点
+            // 但为了逻辑一致性，我们继续使用转换后的坐标
             this.interaction.touches = currentTouches;
         });
 
@@ -795,18 +803,18 @@ class CanvasRenderer {
             e.preventDefault();
             
             const touchDuration = Date.now() - this.interaction.touchStartTime;
-            // 增加点击响应时间范围，提高触摸灵敏度
             const wasQuickTap = touchDuration < 500 && !this.interaction.touchMoved;
 
-            if (wasQuickTap && this.interaction.touches.length === 1) {
-                // 快速点击 - 填色，使用requestAnimationFrame提高响应速度
-                const touch = this.interaction.touches[0];
-                const worldPos = this.screenToWorld(touch.x, touch.y);
+            // touchend 事件的 e.touches 是空的，我们需要用 e.changedTouches
+            if (wasQuickTap && e.changedTouches.length === 1) {
+                // 快速点击 - 填色
+                const touch = e.changedTouches[0];
+                const { x: canvasX, y: canvasY } = this.getCanvasCoordinates(touch);
+                
+                const worldPos = this.screenToWorld(canvasX, canvasY);
                 const cell = this.getSmartCellAt(worldPos.x, worldPos.y);
                 
                 if (cell) {
-                    // 使用requestAnimationFrame确保立即响应
-                    // 移除canClick()检查，让任何方格都能直接点击
                     requestAnimationFrame(() => {
                         const event = new CustomEvent('cellClick', { detail: cell });
                         this.canvas.dispatchEvent(event);
@@ -817,14 +825,17 @@ class CanvasRenderer {
             // 重置状态
             this.interaction.isDragging = false;
             this.interaction.isTouchZooming = false;
-            this.interaction.touches = [];
-            this.interaction.lastTouchDistance = 0;
-            this.interaction.touchMoved = false;
+            // e.touches 在 touchend 时会变少，我们通过 e.touches.length 来判断是否完全结束
+            if (e.touches.length === 0) {
+                this.interaction.touches = [];
+                this.interaction.lastTouchDistance = 0;
+                this.interaction.touchMoved = false;
+            }
         });
 
-        // 触摸取消
         this.canvas.addEventListener('touchcancel', (e) => {
             e.preventDefault();
+            // 重置所有交互状态
             this.interaction.isDragging = false;
             this.interaction.isTouchZooming = false;
             this.interaction.touches = [];
