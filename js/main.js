@@ -668,30 +668,8 @@ class ColorByNumbersApp {
                     <div class="share-options">
                         <div class="share-section">
                             <h4>Download Options</h4>
-                            <button class="share-btn download-btn" data-action="download-normal">
-                                📥 Download Original Size
-                            </button>
-                            <button class="share-btn download-btn" data-action="download-hd">
-                                📥 Download HD Version
-                            </button>
                             <button class="share-btn download-btn" data-action="download-hd-grid">
                                 📥 Download HD Version (with Grid)
-                            </button>
-                        </div>
-                        
-                        <div class="share-section">
-                            <h4>Social Media Sharing</h4>
-                            <button class="share-btn social-btn" data-action="share-twitter">
-                                🐦 Share to Twitter
-                            </button>
-                            <button class="share-btn social-btn" data-action="share-facebook">
-                                📘 Share to Facebook
-                            </button>
-                            <button class="share-btn social-btn" data-action="share-weibo">
-                                🔴 Share to Weibo
-                            </button>
-                            <button class="share-btn social-btn" data-action="copy-link">
-                                🔗 Copy Share Link
                             </button>
                         </div>
                         
@@ -805,49 +783,6 @@ class ColorByNumbersApp {
             }
 
             switch (action) {
-                case 'download-normal':
-                    // If sharing from user gallery, completedImageDataUrl is already 1x
-                    // If from current game, exportImage(1) gets 1x.
-                    imageDataToUse = artworkEntry ? artworkEntry.completedImageDataUrl : canvasRenderer.exportImage(1);
-                    await this.downloadImage(imageDataToUse, `${imageName}-original.png`, 'Original Size');
-                    break;
-                    
-                case 'download-hd':
-                    let hdScaleFactor = 8; // Default for > 64x64
-                    const imageWidth = artworkEntry ? artworkEntry.dimensions.width : (gameEngine.gameData ? gameEngine.gameData.dimensions.width : 0);
-
-                    if (imageWidth > 0) {
-                        hdScaleFactor = this.getHdScaleFactor(imageWidth);
-                    }
-                    
-                    if (artworkEntry) {
-                        // For saved artworks, we upscale the stored 1x `completedImageDataUrl`
-                        const imageHeight = artworkEntry.dimensions.height; // Get height as well
-                        // hdScaleFactor is already calculated above based on artworkEntry.dimensions.width
-
-                        const targetWidth = imageWidth * hdScaleFactor;
-                        const targetHeight = imageHeight * hdScaleFactor;
-                        
-                        try {
-                            imageDataToUse = await Utils.upscaleImageDataUrl(artworkEntry.completedImageDataUrl, targetWidth, targetHeight);
-                            await this.downloadImage(imageDataToUse, `${imageName}-hd-upscaled-${hdScaleFactor}x.png`, `HD Upscaled Version (${hdScaleFactor}x)`);
-                        } catch (upscaleError) {
-                            console.error('Error upscaling saved artwork:', upscaleError);
-                            Utils.showNotification('Failed to upscale saved artwork', 'error');
-                            // Fallback to downloading the 1x version if upscaling fails
-                            imageDataToUse = artworkEntry.completedImageDataUrl;
-                            await this.downloadImage(imageDataToUse, `${imageName}-completed-1x.png`, 'Saved Artwork (1x)');
-                        }
-                    } else if (canvasRenderer && gameEngine && gameEngine.getGameData()) {
-                        // For current game, generate a fresh HD export with dynamic scale
-                        imageDataToUse = canvasRenderer.exportImage(hdScaleFactor);
-                        await this.downloadImage(imageDataToUse, `${imageName}-hd-${hdScaleFactor}x.png`, `HD Grid Version (${hdScaleFactor}x)`);
-                    } else {
-                        Utils.showNotification('Unable to generate HD version image', 'warning');
-                        return;
-                    }
-                    break;
-                    
                 case 'download-hd-grid':
                     let hdGridScaleFactor = 8; // Default for > 64x64
                     const imageGridWidth = artworkEntry ? artworkEntry.dimensions.width : (gameEngine.gameData ? gameEngine.gameData.dimensions.width : 0);
@@ -924,22 +859,6 @@ class ColorByNumbersApp {
                         Utils.showNotification('Failed to generate HD grid version, please try again', 'warning');
                         return;
                     }
-                    break;
-                    
-                case 'share-twitter':
-                    this.shareToTwitter();
-                    break;
-                    
-                case 'share-facebook':
-                    this.shareToFacebook();
-                    break;
-                    
-                case 'share-weibo':
-                    this.shareToWeibo();
-                    break;
-                    
-                case 'copy-link':
-                    this.copyShareLink();
                     break;
                     
                 case 'print':
