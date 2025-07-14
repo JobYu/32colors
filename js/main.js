@@ -9,7 +9,8 @@ class ColorByNumbersApp {
         this.currentImageManifestPath = null; // Track built-in image path
         this.currentUploadedImageName = null; // Track uploaded image name
         this.isProcessing = false;
-        this.FILE_INPUT_HINT_TEXT = 'Select pixel image (PNG/JPG format, max 300×300 pixels, 128 colors or less)';
+        this.voxelParser = new VoxelParser();
+        this.FILE_INPUT_HINT_TEXT = 'Select pixel image (PNG/JPG format, max 300×300 pixels, 128 colors or less) or VOX file (MagicaVoxel format)';
         
         // 油漆桶工具状态
         this.bucketTool = {
@@ -230,6 +231,13 @@ class ColorByNumbersApp {
         this.currentImageManifestPath = null; // Clear manifest path for uploaded files
         this.currentUploadedImageName = null; // Reset before attempting to set
 
+        // 检查是否是.vox文件
+        if (file.name.toLowerCase().endsWith('.vox')) {
+            this.elements.fileName.textContent = file.name;
+            await this.handleVoxelUpload(file);
+            return;
+        }
+
         // 基本文件验证
         const validation = imageProcessor.validateImageFile(file);
         if (!validation.valid) {
@@ -277,6 +285,127 @@ class ColorByNumbersApp {
             this.elements.fileName.textContent = this.FILE_INPUT_HINT_TEXT;
             this.resetFileInput();
         }
+    }
+
+    /**
+     * 处理voxel文件上传
+     */
+    async handleVoxelUpload(file) {
+        try {
+            Utils.showNotification('Loading voxel file...', 'info');
+            
+            // 读取文件
+            const arrayBuffer = await this.readFileAsArrayBuffer(file);
+            
+            // 解析voxel数据
+            const voxelData = this.voxelParser.parseVoxFile(arrayBuffer);
+            
+            this.currentUploadedImageName = file.name;
+            
+            Utils.showNotification('Voxel file loaded successfully! Generating game...', 'success');
+            
+            // 生成voxel游戏
+            await this.generateVoxelGame(voxelData, file.name);
+            
+        } catch (error) {
+            console.error('Error processing voxel file:', error);
+            Utils.showNotification(`Failed to load voxel file: ${error.message}`, 'error');
+            this.elements.fileName.textContent = this.FILE_INPUT_HINT_TEXT;
+            this.resetFileInput();
+        }
+    }
+
+    /**
+     * 生成voxel填色游戏
+     */
+    async generateVoxelGame(voxelData, gameIdentifier) {
+        if (this.isProcessing) {
+            console.warn('generateVoxelGame aborted: Still processing a previous game.');
+            return;
+        }
+
+        this.isProcessing = true;
+        this.showLoading('Generating voxel coloring game...');
+
+        try {
+            // 转换为游戏数据格式
+            const gameData = this.voxelParser.convertToGameData(voxelData, 'top');
+            
+            // 将cells数组转换为二维网格
+            const gameGrid = Array(gameData.height).fill(null).map(() => Array(gameData.width).fill(null));
+            gameData.cells.forEach(cell => {
+                gameGrid[cell.y][cell.x] = {
+                    number: cell.number,
+                    filled: false,
+                    isTransparent: false
+                };
+            });
+
+            // 使用处理后的调色板
+            const palette = gameData.palette.map(color => ({
+                number: color.id,
+                color: color.hex,
+                label: `Color ${color.id}`
+            }));
+
+            // 构建完整的游戏数据
+            const completeGameData = {
+                gameGrid: gameGrid,
+                palette: palette,
+                gameInfo: {
+                    name: gameIdentifier,
+                    type: 'voxel',
+                    size: `${gameData.width}×${gameData.height}`,
+                    totalColors: palette.length,
+                    difficulty: this.calculateVoxelDifficulty(gameGrid, palette.length)
+                }
+            };
+
+            // 初始化游戏引擎
+            gameEngine.initGame(completeGameData);
+            
+            // 生成图例
+            this.generateLegend(palette);
+            
+            // 渲染游戏画布
+            canvasRenderer.render(completeGameData.gameGrid, palette);
+            
+            // 切换到游戏页面
+            this.showGamePage();
+            
+            Utils.showNotification('Voxel coloring game generated successfully!', 'success');
+            
+        } catch (error) {
+            console.error('[Debug] Error in generateVoxelGame:', error);
+            Utils.showNotification(`Failed to generate voxel game: ${error.message}`, 'error');
+        } finally {
+            this.hideLoading();
+            this.isProcessing = false;
+        }
+    }
+
+    /**
+     * 计算voxel游戏难度
+     */
+    calculateVoxelDifficulty(grid, colorCount) {
+        const totalCells = grid.flat().filter(cell => cell && !cell.isTransparent).length;
+        
+        if (totalCells < 100 && colorCount <= 8) return 'Easy';
+        if (totalCells < 400 && colorCount <= 16) return 'Medium';
+        if (totalCells < 900 && colorCount <= 24) return 'Hard';
+        return 'Expert';
+    }
+
+    /**
+     * 读取文件为ArrayBuffer
+     */
+    readFileAsArrayBuffer(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsArrayBuffer(file);
+        });
     }
 
     /**
