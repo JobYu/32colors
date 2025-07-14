@@ -10,7 +10,7 @@ class ColorByNumbersApp {
         this.currentUploadedImageName = null; // Track uploaded image name
         this.isProcessing = false;
         this.voxelParser = new VoxelParser();
-        this.FILE_INPUT_HINT_TEXT = 'Select pixel image (PNG/JPG format, max 300×300 pixels, 128 colors or less) or VOX file (MagicaVoxel format)';
+        this.FILE_INPUT_HINT_TEXT = 'Select pixel image (PNG/JPG format, max 300×300 pixels, 128 colors or less)';
         
         // 油漆桶工具状态
         this.bucketTool = {
@@ -23,6 +23,7 @@ class ColorByNumbersApp {
         this.setupEventListeners();
         this.setupGameEngine();
         this.initializeGallery();
+        this.initializeVoxelModels();
         
         // 默认显示首页
         this.showHomePage();
@@ -70,6 +71,9 @@ class ColorByNumbersApp {
             userGalleryContainer: document.getElementById('userGalleryContainer'),
             filteredImagesContainer: document.getElementById('filteredImagesContainer'),
             sizeFilter: document.getElementById('sizeFilter'),
+            
+            // Voxel Elements
+            voxelModelsContainer: document.getElementById('voxelModelsContainer'),
 
             // Page containers
             homePage: document.getElementById('homePage'),
@@ -236,12 +240,7 @@ class ColorByNumbersApp {
         this.currentImageManifestPath = null; // Clear manifest path for uploaded files
         this.currentUploadedImageName = null; // Reset before attempting to set
 
-        // 检查是否是.vox文件
-        if (file.name.toLowerCase().endsWith('.vox')) {
-            this.elements.fileName.textContent = file.name;
-            await this.handleVoxelUpload(file);
-            return;
-        }
+
 
         // 基本文件验证
         const validation = imageProcessor.validateImageFile(file);
@@ -295,30 +294,7 @@ class ColorByNumbersApp {
     /**
      * 处理voxel文件上传
      */
-    async handleVoxelUpload(file) {
-        try {
-            Utils.showNotification('Loading voxel file...', 'info');
-            
-            // 读取文件
-            const arrayBuffer = await this.readFileAsArrayBuffer(file);
-            
-            // 解析voxel数据
-            const voxelData = this.voxelParser.parseVoxFile(arrayBuffer);
-            
-            this.currentUploadedImageName = file.name;
-            
-            Utils.showNotification('Voxel file loaded successfully! Generating game...', 'success');
-            
-            // 生成voxel游戏
-            await this.generateVoxelGame(voxelData, file.name);
-            
-        } catch (error) {
-            console.error('Error processing voxel file:', error);
-            Utils.showNotification(`Failed to load voxel file: ${error.message}`, 'error');
-            this.elements.fileName.textContent = this.FILE_INPUT_HINT_TEXT;
-            this.resetFileInput();
-        }
-    }
+
 
     /**
      * 生成voxel填色游戏
@@ -1335,6 +1311,136 @@ class ColorByNumbersApp {
             this.hideLoading();
         } else {
             this.hideLoading();
+        }
+    }
+
+    /**
+     * 初始化voxel模型
+     */
+    async initializeVoxelModels() {
+        const voxelModels = [
+            {
+                name: 'Person',
+                filename: 'person.vox',
+                path: 'assets/voxel/person.vox'
+            }
+            // 可以在这里添加更多voxel模型
+        ];
+
+        try {
+            await this.loadVoxelModels(voxelModels);
+        } catch (error) {
+            console.error('Error loading voxel models:', error);
+            this.showVoxelError('Failed to load voxel models');
+        }
+    }
+
+    /**
+     * 加载voxel模型到界面
+     */
+    async loadVoxelModels(models) {
+        if (!this.elements.voxelModelsContainer) {
+            console.error('Voxel models container not found');
+            return;
+        }
+
+        this.showVoxelLoading();
+
+        try {
+            this.elements.voxelModelsContainer.innerHTML = '';
+
+            for (const model of models) {
+                const modelElement = this.createVoxelModelElement(model);
+                this.elements.voxelModelsContainer.appendChild(modelElement);
+            }
+
+            this.hideVoxelLoading();
+        } catch (error) {
+            console.error('Error loading voxel models:', error);
+            this.showVoxelError('Failed to load voxel models');
+        }
+    }
+
+    /**
+     * 创建voxel模型元素
+     */
+    createVoxelModelElement(model) {
+        const modelDiv = document.createElement('div');
+        modelDiv.className = 'voxel-model-item';
+        modelDiv.setAttribute('data-voxel-path', model.path);
+
+        const preview = document.createElement('div');
+        preview.className = 'voxel-model-preview';
+        preview.textContent = '3D Model';
+
+        const name = document.createElement('div');
+        name.className = 'voxel-model-name';
+        name.textContent = model.name;
+
+        const info = document.createElement('div');
+        info.className = 'voxel-model-info';
+        info.textContent = 'Click to start coloring';
+
+        modelDiv.appendChild(preview);
+        modelDiv.appendChild(name);
+        modelDiv.appendChild(info);
+
+        // 添加点击事件
+        modelDiv.addEventListener('click', () => {
+            this.handleVoxelModelClick(model);
+        });
+
+        return modelDiv;
+    }
+
+    /**
+     * 处理voxel模型点击
+     */
+    async handleVoxelModelClick(model) {
+        try {
+            Utils.showNotification('Loading voxel model...', 'info');
+            
+            // 从URL加载voxel文件
+            const voxelData = await this.voxelParser.loadFromURL(model.path);
+            
+            this.currentUploadedImageName = model.name;
+            
+            Utils.showNotification('Voxel model loaded successfully! Generating game...', 'success');
+            
+            // 生成voxel游戏
+            await this.generateVoxelGame(voxelData, model.name);
+            
+        } catch (error) {
+            console.error('Error loading voxel model:', error);
+            Utils.showNotification(`Failed to load voxel model: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * 显示voxel加载状态
+     */
+    showVoxelLoading() {
+        if (this.elements.voxelModelsContainer) {
+            this.elements.voxelModelsContainer.innerHTML = '<div class="voxel-loading">Loading voxel models...</div>';
+        }
+    }
+
+    /**
+     * 隐藏voxel加载状态
+     */
+    hideVoxelLoading() {
+        const loadingElement = this.elements.voxelModelsContainer.querySelector('.voxel-loading');
+        if (loadingElement) {
+            loadingElement.remove();
+        }
+    }
+
+    /**
+     * 显示voxel错误
+     */
+    showVoxelError(message) {
+        if (this.elements.voxelModelsContainer) {
+            this.elements.voxelModelsContainer.innerHTML = `<div class="voxel-error">${message}</div>`;
         }
     }
 
