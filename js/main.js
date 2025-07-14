@@ -300,6 +300,12 @@ class ColorByNumbersApp {
      * 生成voxel填色游戏
      */
     async generateVoxelGame(voxelData, gameIdentifier) {
+        if (this.isProcessing) {
+            console.warn('generateVoxelGame aborted: Still processing a previous game.');
+            return;
+        }
+
+        this.isProcessing = true;
         this.showLoading('Generating voxel coloring game...');
 
         try {
@@ -349,6 +355,7 @@ class ColorByNumbersApp {
             Utils.showNotification(`Failed to generate voxel game: ${error.message}`, 'error');
         } finally {
             this.hideLoading();
+            this.isProcessing = false;
         }
     }
 
