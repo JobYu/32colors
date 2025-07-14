@@ -50,11 +50,6 @@ class VoxelParser {
      * @returns {Object} Chunk data
      */
     _readChunk(view, offset) {
-        // 检查是否有足够的数据来读取chunk header
-        if (offset + 12 > view.byteLength) {
-            throw new Error('Not enough data to read chunk header');
-        }
-
         const id = this._readString(view, offset, 4);
         offset += 4;
 
@@ -66,15 +61,6 @@ class VoxelParser {
 
         const contentOffset = offset;
         const childrenOffset = offset + contentSize;
-
-        // 验证数据边界
-        if (contentOffset + contentSize > view.byteLength) {
-            throw new Error(`Content extends beyond buffer: ${contentOffset + contentSize} > ${view.byteLength}`);
-        }
-
-        if (childrenOffset + childrenSize > view.byteLength) {
-            throw new Error(`Children extends beyond buffer: ${childrenOffset + childrenSize} > ${view.byteLength}`);
-        }
 
         const content = new DataView(view.buffer, contentOffset, contentSize);
         const children = new DataView(view.buffer, childrenOffset, childrenSize);
@@ -100,50 +86,25 @@ class VoxelParser {
             palette: null
         };
 
-        let iterations = 0;
-        const maxIterations = 1000; // 防止无限循环
+        while (offset < childrenView.byteLength) {
+            const chunk = this._readChunk(childrenView, offset);
+            offset = chunk.offset;
 
-        while (offset < childrenView.byteLength && iterations < maxIterations) {
-            iterations++;
-            
-            try {
-                const chunk = this._readChunk(childrenView, offset);
-                
-                // 验证offset是否有效增长
-                if (chunk.offset <= offset) {
-                    console.error('Chunk offset did not advance, breaking to prevent infinite loop');
+            switch (chunk.id) {
+                case 'SIZE':
+                    data.size = this._parseSize(chunk.content);
                     break;
-                }
-                
-                offset = chunk.offset;
-
-                switch (chunk.id) {
-                    case 'SIZE':
-                        data.size = this._parseSize(chunk.content);
-                        break;
-                    case 'XYZI':
-                        const voxels = this._parseVoxels(chunk.content);
-                        data.voxels.push(...voxels);
-                        break;
-                    case 'RGBA':
-                        data.palette = this._parsePalette(chunk.content);
-                        break;
-                    case 'PACK':
-                        // Skip pack chunk for now (multiple models)
-                        break;
-                    default:
-                        // Skip unknown chunks
-                        console.log(`Skipping unknown chunk: ${chunk.id}`);
-                        break;
-                }
-            } catch (error) {
-                console.error('Error parsing chunk:', error);
-                break;
+                case 'XYZI':
+                    const voxels = this._parseVoxels(chunk.content);
+                    data.voxels.push(...voxels);
+                    break;
+                case 'RGBA':
+                    data.palette = this._parsePalette(chunk.content);
+                    break;
+                case 'PACK':
+                    // Skip pack chunk for now (multiple models)
+                    break;
             }
-        }
-
-        if (iterations >= maxIterations) {
-            console.error('Maximum iterations reached, possible infinite loop detected');
         }
 
         return data;
@@ -218,27 +179,12 @@ class VoxelParser {
     convertToGameData(voxelData) {
         const { size, voxels, palette } = voxelData;
         
-        // 验证尺寸以防止浏览器崩溃
-        if (!size || size.x <= 0 || size.y <= 0 || size.z <= 0) {
-            throw new Error('Invalid voxel size data');
-        }
-        
-        // 限制最大尺寸以防止内存耗尽
-        const maxSize = 256; // 限制最大尺寸为256x256x256
-        if (size.x > maxSize || size.y > maxSize || size.z > maxSize) {
-            throw new Error(`Voxel model too large: ${size.x}x${size.y}x${size.z}. Maximum size is ${maxSize}x${maxSize}x${maxSize}`);
-        }
-        
-        console.log(`Creating 3D grid with size: ${size.x}x${size.y}x${size.z}`);
-        
-        // 安全地创建3D网格
-        const grid3D = [];
-        for (let z = 0; z < size.z; z++) {
-            grid3D[z] = [];
-            for (let y = 0; y < size.y; y++) {
-                grid3D[z][y] = new Array(size.x).fill(null);
-            }
-        }
+        // Create 3D grid filled with empty cells
+        const grid3D = Array(size.z).fill(null).map(() => 
+            Array(size.y).fill(null).map(() => 
+                Array(size.x).fill(null)
+            )
+        );
 
         // Fill the 3D grid with voxel data
         voxels.forEach(voxel => {
@@ -360,21 +306,13 @@ class VoxelParser {
      */
     async loadFromUrl(url) {
         try {
-            console.log(`Loading VOX file from: ${url}`);
             const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const arrayBuffer = await response.arrayBuffer();
-            console.log(`VOX file loaded, size: ${arrayBuffer.byteLength} bytes`);
-            
-            if (arrayBuffer.byteLength === 0) {
-                throw new Error('VOX file is empty');
-            }
-            
             return this.parseVoxFile(arrayBuffer);
         } catch (error) {
-            console.error('Error loading VOX file:', error);
             throw new Error(`Failed to load VOX file: ${error.message}`);
         }
     }
