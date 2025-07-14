@@ -232,24 +232,8 @@ class VoxelParser {
      * @returns {Object} 3D Game-ready voxel data
      */
     convertToGameData(voxelData) {
-        let { size, voxels, palette } = voxelData;
-
-        // 如果size无效，则尝试从体素数据计算
-        if (!size || size.x <= 0 || size.y <= 0 || size.z <= 0) {
-            if (!voxels || voxels.length === 0) {
-                throw new Error('Invalid voxel data: no SIZE chunk and voxel list is empty');
-            }
-            console.warn('[VoxelParser] Invalid SIZE data, computing from voxel list');
-            let maxX = 0, maxY = 0, maxZ = 0;
-            voxels.forEach(v => {
-                if (v.x > maxX) maxX = v.x;
-                if (v.y > maxY) maxY = v.y;
-                if (v.z > maxZ) maxZ = v.z;
-            });
-            size = { x: maxX + 1, y: maxY + 1, z: maxZ + 1 };
-            console.log('[VoxelParser] Computed size:', size);
-        }
-
+        const { size, voxels, palette } = voxelData;
+        
         // 验证尺寸以防止浏览器崩溃
         if (!size || size.x <= 0 || size.y <= 0 || size.z <= 0) {
             throw new Error('Invalid voxel size data');
