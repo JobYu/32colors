@@ -1401,7 +1401,7 @@ class ColorByNumbersApp {
             Utils.showNotification('Loading voxel model...', 'info');
             
             // 从URL加载voxel文件
-            const voxelData = await this.voxelParser.loadFromURL(model.path);
+            const voxelData = await this.voxelParser.loadFromUrl(model.path);
             
             this.currentUploadedImageName = model.name;
             
