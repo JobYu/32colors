@@ -199,8 +199,8 @@
                                 <label for="imageLoader" class="upload-btn">
                                     Open Pixel Art Image
                                 </label>
-                                <input type="file" id="imageLoader" accept="image/*,.vox" style="display: none;" aria-describedby="fileName">
-                                <span class="file-name" id="fileName">Select pixel image (PNG/JPG format, max 300×300 pixels, 128 colors or less) or VOX file (MagicaVoxel format). Uploaded files are saved locally only and not uploaded to servers.</span>
+                                <input type="file" id="imageLoader" accept="image/*" style="display: none;" aria-describedby="fileName">
+                                <span class="file-name" id="fileName">Choose a pixel image (PNG/JPG format, max 300×300 pixels, within 128 colors). Uploaded images are saved locally only and not uploaded to servers.</span>
                             </div>
                         </div>
                     </section>
@@ -346,7 +346,6 @@
     <script defer src="js/utils.js"></script>
     <script defer src="js/colorQuantizer.js"></script>
     <script defer src="js/imageProcessor.js"></script>
-    <script defer src="js/voxelParser.js"></script>
     <script defer src="js/galleryManager.js"></script>
 
     <script defer src="js/canvasRenderer.js"></script>
