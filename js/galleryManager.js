@@ -1,7 +1,6 @@
 class GalleryManager {
     constructor(manifestPath = 'image_manifest.json') {
         this.manifestPath = manifestPath;
-        this.manifest = null; // Store the loaded manifest
         this.allImages = []; // Will store all images with their details
         this.categories = {}; // Stores images grouped by folder category
         this.sizeCategories = { // Predefined size categories
@@ -20,7 +19,8 @@ class GalleryManager {
             loadedImages: 0,
             failedImages: 0
         };
-        this.initialLoadLimit = 4; // Load 4 images per category initially
+        
+
     }
 
     /**
@@ -35,15 +35,15 @@ class GalleryManager {
             if (!response.ok) {
                 throw new Error(`Failed to fetch image manifest: ${response.statusText}`);
             }
-            this.manifest = await response.json();
+            const manifest = await response.json();
             
             // Mark as initialized immediately after manifest is loaded
             this.initialized = true;
             console.log('GalleryManager manifest loaded successfully.');
             
-            // Don't process automatically, wait for explicit call
-            this._prepareManifest();
-
+            // Process images progressively without waiting
+            this._processManifestProgressively(manifest);
+            
         } catch (error) {
             console.error('Error initializing GalleryManager:', error);
             Utils.showNotification(`Gallery loading failed: ${error.message}`, 'error');
@@ -52,85 +52,44 @@ class GalleryManager {
     }
 
     /**
-     * Prepares the manifest data but doesn't load images yet.
+     * Processes the manifest data progressively, loading images one by one.
+     * @param {object} manifest - The parsed JSON manifest.
      * @private
      */
-    _prepareManifest() {
-        if (!this.manifest || !this.manifest.categories) {
+    async _processManifestProgressively(manifest) {
+        if (!manifest || !manifest.categories) {
             console.warn('Manifest is empty or has invalid format.');
             return;
         }
 
         // Count total images for progress tracking
         this.loadingStats.totalImages = 0;
-        for (const category of this.manifest.categories) {
-            this.categories[category.name] = {
-                images: category.images,
-                loadedCount: 0
-            };
+        for (const category of manifest.categories) {
             if (category.images && Array.isArray(category.images)) {
                 this.loadingStats.totalImages += category.images.length;
             }
         }
-        console.log(`Manifest prepared. Total images to load: ${this.loadingStats.totalImages}`);
-    }
 
-    /**
-     * Loads the initial set of images for each category.
-     */
-    async loadInitialSet() {
-        console.log('Loading initial set of images...');
-        for (const categoryName in this.categories) {
-            await this._processCategoryProgressively(categoryName, this.initialLoadLimit);
+        console.log(`Starting progressive loading of ${this.loadingStats.totalImages} images`);
+
+        // Process categories sequentially, but don't wait for each category to complete
+        for (const category of manifest.categories) {
+            this.categories[category.name] = [];
+            if (category.images && Array.isArray(category.images)) {
+                this._processCategoryProgressively(category);
+            }
         }
-        console.log('Initial set loading process finished.');
     }
 
     /**
-     * Loads all remaining images for all categories.
-     */
-    async loadRemainingImages() {
-        console.log('Loading all remaining images...');
-        for (const categoryName in this.categories) {
-            // No limit, so it will load all remaining images.
-            await this._processCategoryProgressively(categoryName); 
-        }
-        console.log('Remaining images loading process finished.');
-    }
-
-    /**
-     * Checks if there are more images to load.
-     * @returns {boolean}
-     */
-    hasMoreImagesToLoad() {
-        return this.loadingStats.loadedImages < this.loadingStats.totalImages;
-    }
-
-    /**
-     * Processes a single category progressively up to a given limit.
-     * @param {string} categoryName - The name of the category to process.
-     * @param {number|null} limit - The number of images to load. If null, loads all remaining.
+     * Processes a single category progressively.
+     * @param {object} category - The category object from manifest.
      * @private
      */
-    async _processCategoryProgressively(categoryName, limit = null) {
-        const category = this.categories[categoryName];
-        if (!category) return;
+    async _processCategoryProgressively(category) {
+        const categoryImages = [];
         
-        const imagesToProcess = category.images;
-        const startIndex = category.loadedCount;
-
-        // Determine how many images to load in this batch
-        const endIndex = limit ? Math.min(startIndex + limit, imagesToProcess.length) : imagesToProcess.length;
-
-        if (startIndex >= endIndex) {
-            // Nothing to load in this category
-            return;
-        }
-
-        const categoryImagesLoaded = [];
-
-        for (let i = startIndex; i < endIndex; i++) {
-            const imageInfo = imagesToProcess[i];
+        for (const imageInfo of category.images) {
             try {
                 // Load image to get dimensions
                 const imgElement = await imageProcessor.loadImageFromUrl(imageInfo.path);
@@ -138,40 +97,41 @@ class GalleryManager {
                 
                 const fullImageInfo = {
                     ...imageInfo,
-                    folderCategory: categoryName,
+                    folderCategory: category.name,
                     dimensions: dimensions,
                     sizeCategory: this._getSizeCategory(dimensions)
                 };
 
                 // Add to all collections
                 this.allImages.push(fullImageInfo);
-                // This part needs adjustment if we are to filter by category later
-                if (!this.sizeCategories[fullImageInfo.sizeCategory]) {
-                    this.sizeCategories[fullImageInfo.sizeCategory] = [];
-                }
+                this.categories[category.name].push(fullImageInfo);
                 this.sizeCategories[fullImageInfo.sizeCategory].push(fullImageInfo);
-                categoryImagesLoaded.push(fullImageInfo);
+                categoryImages.push(fullImageInfo);
 
                 // Update loading stats
                 this.loadingStats.loadedImages++;
-                category.loadedCount++;
 
                 // Notify callback that an image was loaded
                 if (this.onImageLoaded) {
-                    this.onImageLoaded(fullImageInfo, categoryName, this.loadingStats);
+                    this.onImageLoaded(fullImageInfo, category.name, this.loadingStats);
                 }
+
+                console.log(`Loaded image ${this.loadingStats.loadedImages}/${this.loadingStats.totalImages}: ${imageInfo.name}`);
 
             } catch (error) {
                 console.error(`Error loading image ${imageInfo.path} for dimension checking:`, error);
                 this.loadingStats.failedImages++;
+                
                 // Continue with next image even if this one fails
             }
         }
 
-        // Notify that this BATCH of images for the category is complete
-        if (this.onCategoryComplete && categoryImagesLoaded.length > 0) {
-            this.onCategoryComplete(categoryName, categoryImagesLoaded, this.loadingStats);
+        // Notify that category is complete
+        if (this.onCategoryComplete) {
+            this.onCategoryComplete(category.name, categoryImages, this.loadingStats);
         }
+
+        console.log(`Category '${category.name}' loading complete: ${categoryImages.length} images loaded`);
     }
 
     /**
@@ -227,8 +187,7 @@ class GalleryManager {
             return [];
         }
         if (folderCategoryName) {
-            // Return only the loaded images for that category
-            return this.allImages.filter(img => img.folderCategory === folderCategoryName);
+            return this.categories[folderCategoryName] || [];
         }
         return this.allImages;
     }
