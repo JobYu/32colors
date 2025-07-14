@@ -1396,8 +1396,6 @@ class ColorByNumbersApp {
             return;
         }
 
-        this._resetPreviousGameDisplay(); // 清理之前的游戏状态
-
         try {
             this.isProcessing = true;
             Utils.showNotification('Loading voxel model...', 'info');
