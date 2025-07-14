@@ -109,9 +109,6 @@ class VoxelParser {
             try {
                 const chunk = this._readChunk(childrenView, offset);
                 
-                // 调试日志
-                console.log(`[VoxelParser] Found chunk: ${chunk.id}, content size: ${chunk.content.byteLength}, children size: ${chunk.children.byteLength}, next offset: ${chunk.offset}`);
-
                 // 验证offset是否有效增长
                 if (chunk.offset <= offset) {
                     console.error('Chunk offset did not advance, breaking to prevent infinite loop');
@@ -147,19 +144,6 @@ class VoxelParser {
 
         if (iterations >= maxIterations) {
             console.error('Maximum iterations reached, possible infinite loop detected');
-        }
-
-        // 如果没有找到SIZE chunk，但是有XYZI，需要一个默认或计算出的size
-        if (!data.size && data.voxels.length > 0) {
-            console.warn('[VoxelParser] SIZE chunk not found. Calculating size from voxels.');
-            let maxX = 0, maxY = 0, maxZ = 0;
-            data.voxels.forEach(v => {
-                if (v.x > maxX) maxX = v.x;
-                if (v.y > maxY) maxY = v.y;
-                if (v.z > maxZ) maxZ = v.z;
-            });
-            data.size = { x: maxX + 1, y: maxY + 1, z: maxZ + 1 };
-            console.log(`[VoxelParser] Calculated size:`, data.size);
         }
 
         return data;
