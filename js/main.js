@@ -144,6 +144,11 @@ class ColorByNumbersApp {
             this.handleCellClick(e.detail);
         });
 
+        // 3D体素点击事件
+        this.elements.gameCanvas.addEventListener('voxelClick', (e) => {
+            this.handleVoxelClick(e.detail);
+        });
+
         // 模态框事件
         this.elements.shareBtn.addEventListener('click', () => {
             this.shareGame();
@@ -328,36 +333,30 @@ class ColorByNumbersApp {
         this.showLoading('Generating voxel coloring game...');
 
         try {
-            // 转换为游戏数据格式
-            const gameData = this.voxelParser.convertToGameData(voxelData, 'top');
+            // 转换为3D体素游戏数据格式
+            const voxelGameData = this.voxelParser.convertToGameData(voxelData);
             
-            // 将cells数组转换为二维网格
-            const gameGrid = Array(gameData.height).fill(null).map(() => Array(gameData.width).fill(null));
-            gameData.cells.forEach(cell => {
-                gameGrid[cell.y][cell.x] = {
-                    number: cell.number,
-                    filled: false,
-                    isTransparent: false
-                };
-            });
-
             // 使用处理后的调色板
-            const palette = gameData.palette.map(color => ({
+            const palette = voxelGameData.palette.map(color => ({
                 number: color.id,
                 color: color.hex,
                 label: `Color ${color.id}`
             }));
 
-            // 构建完整的游戏数据
+            // 构建完整的3D体素游戏数据
             const completeGameData = {
-                gameGrid: gameGrid,
+                gameType: 'voxel3D',
+                dimensions: voxelGameData.dimensions,
+                voxels: voxelGameData.voxels,
+                grid3D: voxelGameData.grid3D,
                 palette: palette,
                 gameInfo: {
                     name: gameIdentifier,
-                    type: 'voxel',
-                    size: `${gameData.width}×${gameData.height}`,
+                    type: 'voxel3D',
+                    size: `${voxelGameData.dimensions.x}×${voxelGameData.dimensions.y}×${voxelGameData.dimensions.z}`,
                     totalColors: palette.length,
-                    difficulty: this.calculateVoxelDifficulty(gameGrid, palette.length)
+                    totalVoxels: voxelGameData.metadata.totalVoxels,
+                    difficulty: this.calculateVoxelDifficulty(voxelGameData.voxels.length, palette.length)
                 }
             };
 
@@ -367,8 +366,8 @@ class ColorByNumbersApp {
             // 生成图例
             this.generateLegend(palette);
             
-            // 渲染游戏画布
-            canvasRenderer.render(completeGameData.gameGrid, palette);
+            // 渲染3D体素游戏画布
+            canvasRenderer.renderVoxel3D(completeGameData);
             
             // 切换到游戏页面
             this.showGamePage();
@@ -387,12 +386,10 @@ class ColorByNumbersApp {
     /**
      * 计算voxel游戏难度
      */
-    calculateVoxelDifficulty(grid, colorCount) {
-        const totalCells = grid.flat().filter(cell => cell && !cell.isTransparent).length;
-        
-        if (totalCells < 100 && colorCount <= 8) return 'Easy';
-        if (totalCells < 400 && colorCount <= 16) return 'Medium';
-        if (totalCells < 900 && colorCount <= 24) return 'Hard';
+    calculateVoxelDifficulty(totalVoxels, colorCount) {
+        if (totalVoxels < 50 && colorCount <= 6) return 'Easy';
+        if (totalVoxels < 200 && colorCount <= 12) return 'Medium';
+        if (totalVoxels < 500 && colorCount <= 20) return 'Hard';
         return 'Expert';
     }
 
@@ -677,6 +674,51 @@ class ColorByNumbersApp {
             canvasRenderer.render();
         } else {
             console.log('Failed to fill cell - possible reasons: already revealed, game not playing, or game paused');
+        }
+    }
+
+    /**
+     * 处理3D体素点击
+     * @param {object} voxel - 被点击的体素
+     */
+    handleVoxelClick(voxel) {
+        if (!voxel || !gameEngine.gameData) return;
+        
+        // 3D体素填色
+        this.fillVoxel(voxel);
+    }
+
+    /**
+     * 填充3D体素
+     * @param {object} voxel - 要填充的体素
+     */
+    fillVoxel(voxel) {
+        if (!voxel || voxel.filled) return;
+        
+        // 标记体素为已填充
+        voxel.filled = true;
+        
+        // 更新游戏引擎进度
+        if (gameEngine.gameData && gameEngine.gameData.voxels) {
+            const totalVoxels = gameEngine.gameData.voxels.length;
+            const filledVoxels = gameEngine.gameData.voxels.filter(v => v.filled).length;
+            
+            // 更新游戏状态
+            gameEngine.gameState.completedCells = filledVoxels;
+            gameEngine.updateProgress();
+            
+            // 检查是否完成
+            if (filledVoxels === totalVoxels) {
+                gameEngine.completeGame();
+            }
+        }
+        
+        // 重新渲染
+        canvasRenderer.renderVoxel3D(gameEngine.gameData);
+        
+        const remainingVoxels = gameEngine.gameData.voxels.filter(v => !v.filled).length;
+        if (remainingVoxels > 0) {
+            Utils.showNotification(`体素已填色！剩余 ${remainingVoxels} 个`, 'success');
         }
     }
 
