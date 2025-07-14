@@ -85,6 +85,9 @@ class ColorByNumbersApp {
             homeNavBtn: document.getElementById('homeNavBtn'),
             galleryNavBtn: document.getElementById('galleryNavBtn'),
             
+            // Load More
+            loadMoreContainer: document.getElementById('loadMoreContainer'),
+            loadMoreBtn: document.getElementById('loadMoreBtn'),
 
         };
     }
@@ -122,7 +125,9 @@ class ColorByNumbersApp {
     setupEventListeners() {
         // 文件上传
         this.elements.imageLoader.addEventListener('change', (e) => {
-            this.handleFileUpload(e.target.files[0]);
+            if (e.target.files && e.target.files[0]) {
+                this.handleFileUpload(e.target.files[0]);
+            }
         });
 
         // 画布控制
@@ -197,6 +202,9 @@ class ColorByNumbersApp {
             });
         }
 
+        if (this.elements.loadMoreBtn) {
+            this.elements.loadMoreBtn.addEventListener('click', () => this.handleLoadMore());
+        }
 
     }
 
@@ -1297,13 +1305,43 @@ class ColorByNumbersApp {
         await galleryManager.init();
         
         if (galleryManager.initialized) {
-
-            
             // Initialize UI structure immediately
             this.initializeGalleryUI();
+            
+            // Load the initial set of images
+            await galleryManager.loadInitialSet();
+
+            this.updateLoadMoreButton();
             this.hideLoading();
         } else {
             this.hideLoading();
+        }
+    }
+
+    /**
+     * Handles the click of the "Load More" button.
+     */
+    async handleLoadMore() {
+        if (!galleryManager.hasMoreImagesToLoad()) return;
+
+        this.elements.loadMoreBtn.disabled = true;
+        this.elements.loadMoreBtn.textContent = 'Loading...';
+
+        await galleryManager.loadRemainingImages();
+
+        this.updateLoadMoreButton();
+    }
+
+    /**
+     * Updates the visibility of the "Load More" button.
+     */
+    updateLoadMoreButton() {
+        if (galleryManager.hasMoreImagesToLoad()) {
+            this.elements.loadMoreContainer.style.display = 'block';
+            this.elements.loadMoreBtn.disabled = false;
+            this.elements.loadMoreBtn.textContent = 'Load More Images';
+        } else {
+            this.elements.loadMoreContainer.style.display = 'none';
         }
     }
 
@@ -1502,6 +1540,7 @@ class ColorByNumbersApp {
             
             // Refresh gallery display
             this.refreshGalleryDisplay();
+            this.updateLoadMoreButton(); // Update button state when all images are loaded
             
             console.log('All gallery images loaded!');
             Utils.showNotification(`Gallery loaded: ${loadingStats.loadedImages} images (${loadingStats.failedImages} failed)`, 'success');
