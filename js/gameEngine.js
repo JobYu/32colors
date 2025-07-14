@@ -47,23 +47,12 @@ class GameEngine {
         // Initialize colorStats properly
         this.gameState.colorStats = []; // Ensure it's always an array
         if (this.gameData && this.gameData.palette && Array.isArray(this.gameData.palette)) {
-            if (this.gameData.gameType === 'voxel3D') {
-                // 3D体素游戏统计
-                this.gameState.colorStats = this.gameData.palette.map(p => ({
-                    number: p.number,
-                    totalCells: this.gameData.voxels ? this.gameData.voxels.filter(v => v.targetColor === p.number).length : 0,
-                    completedCells: 0,
-                    completionRate: 0
-                }));
-            } else {
-                // 2D游戏统计
-                this.gameState.colorStats = this.gameData.palette.map(p => ({
-                    number: p.number,
-                    totalCells: (this.gameData.gameGrid ? this.gameData.gameGrid.flat().filter(c => c && !c.isTransparent && c.number === p.number).length : 0),
-                    completedCells: 0,
-                    completionRate: 0
-                }));
-            }
+            this.gameState.colorStats = this.gameData.palette.map(p => ({
+                number: p.number,
+                totalCells: (this.gameData.gameGrid ? this.gameData.gameGrid.flat().filter(c => c && !c.isTransparent && c.number === p.number).length : 0),
+                completedCells: 0, // Initial state, will be updated by loadProgress or setGameAsCompleted
+                completionRate: 0  // Initial state, will be updated by loadProgress or setGameAsCompleted
+            }));
         }
         
         // Attempt to load saved progress
@@ -103,26 +92,20 @@ class GameEngine {
         if (!this.gameData) return;
         
         let total = 0;
+        const { gameGrid } = this.gameData;
         
-        if (this.gameData.gameType === 'voxel3D') {
-            // 3D体素游戏
-            total = this.gameData.voxels ? this.gameData.voxels.length : 0;
-        } else {
-            // 2D游戏
-            const { gameGrid } = this.gameData;
-            for (let row = 0; row < gameGrid.length; row++) {
-                for (let col = 0; col < gameGrid[row].length; col++) {
-                    const cell = gameGrid[row][col];
-                    // 只计算非透明的单元格，因为只有这些需要填色
-                    if (cell && !cell.isTransparent) {
-                        total++;
-                    }
+        for (let row = 0; row < gameGrid.length; row++) {
+            for (let col = 0; col < gameGrid[row].length; col++) {
+                const cell = gameGrid[row][col];
+                // 只计算非透明的单元格，因为只有这些需要填色
+                if (cell && !cell.isTransparent) {
+                    total++;
                 }
             }
         }
         
         this.gameState.totalCells = total;
-        console.log(`[GameEngine Debug] Total fillable cells calculated: ${total} (Type: ${this.gameData.gameType || '2D'})`);
+        console.log(`[GameEngine Debug] Total fillable cells calculated: ${total}`);
     }
 
     /**

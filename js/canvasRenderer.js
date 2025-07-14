@@ -10,20 +10,6 @@ class CanvasRenderer {
         this.gameData = null;
         this.bucketToolActive = false;
         
-        // 3D体素渲染状态
-        this.voxel3D = {
-            camera: {
-                angleX: -25,  // X轴旋转角度
-                angleY: 35,   // Y轴旋转角度
-                zoom: 1,
-                offsetX: 0,
-                offsetY: 0
-            },
-            voxelSize: 20,    // 体素显示大小
-            highlightedVoxel: null,
-            selectedNumber: null
-        };
-        
         // 变换状态
         this.transform = {
             scale: 1,
@@ -193,211 +179,6 @@ class CanvasRenderer {
             this.canvas.width / 2,
             this.canvas.height / 2
         );
-    }
-
-    /**
-     * 渲染3D体素游戏
-     */
-    renderVoxel3D(gameData) {
-        if (!gameData || gameData.gameType !== 'voxel3D') {
-            this.renderEmptyState();
-            return;
-        }
-
-        this.gameData = gameData;
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // 设置背景
-        this.ctx.fillStyle = '#1a1a1a';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // 计算视图中心
-        const centerX = this.canvas.width / 2 + this.voxel3D.camera.offsetX;
-        const centerY = this.canvas.height / 2 + this.voxel3D.camera.offsetY;
-        
-        // 根据模型大小自动调整体素大小
-        const maxDim = Math.max(gameData.dimensions.x, gameData.dimensions.y, gameData.dimensions.z);
-        this.voxel3D.voxelSize = Math.max(8, Math.min(25, 400 / maxDim)) * this.voxel3D.camera.zoom;
-        
-        // 渲染所有体素
-        const sortedVoxels = this.sortVoxelsForRendering(gameData.voxels);
-        sortedVoxels.forEach(voxel => {
-            this.renderVoxel(voxel, gameData.palette, centerX, centerY);
-        });
-        
-        // 渲染控制提示
-        this.renderVoxel3DControls();
-    }
-
-    /**
-     * 按深度排序体素以正确渲染
-     */
-    sortVoxelsForRendering(voxels) {
-        return voxels.slice().sort((a, b) => {
-            // 使用等轴投影计算深度
-            const depthA = a.x + a.y - a.z;
-            const depthB = b.x + b.y - b.z;
-            return depthA - depthB;
-        });
-    }
-
-    /**
-     * 渲染单个体素
-     */
-    renderVoxel(voxel, palette, centerX, centerY) {
-        const pos = this.project3DToIsometric(
-            voxel.x, voxel.y, voxel.z, 
-            centerX, centerY
-        );
-        
-        const size = this.voxel3D.voxelSize;
-        const color = palette.find(p => p.number === voxel.targetColor);
-        
-        if (!color) return;
-        
-        // 绘制体素的三个可见面（等轴投影）
-        this.ctx.save();
-        
-        // 顶面
-        this.ctx.fillStyle = voxel.filled ? color.color : this.lightenColor(color.color, 0.8);
-        this.ctx.strokeStyle = '#000';
-        this.ctx.lineWidth = 1;
-        
-        this.ctx.beginPath();
-        this.ctx.moveTo(pos.x, pos.y);
-        this.ctx.lineTo(pos.x + size * 0.5, pos.y - size * 0.25);
-        this.ctx.lineTo(pos.x, pos.y - size * 0.5);
-        this.ctx.lineTo(pos.x - size * 0.5, pos.y - size * 0.25);
-        this.ctx.closePath();
-        this.ctx.fill();
-        this.ctx.stroke();
-        
-        // 左面
-        this.ctx.fillStyle = voxel.filled ? this.darkenColor(color.color, 0.8) : this.darkenColor(color.color, 0.6);
-        this.ctx.beginPath();
-        this.ctx.moveTo(pos.x - size * 0.5, pos.y - size * 0.25);
-        this.ctx.lineTo(pos.x, pos.y - size * 0.5);
-        this.ctx.lineTo(pos.x, pos.y);
-        this.ctx.lineTo(pos.x - size * 0.5, pos.y + size * 0.25);
-        this.ctx.closePath();
-        this.ctx.fill();
-        this.ctx.stroke();
-        
-        // 右面
-        this.ctx.fillStyle = voxel.filled ? this.darkenColor(color.color, 0.6) : this.darkenColor(color.color, 0.4);
-        this.ctx.beginPath();
-        this.ctx.moveTo(pos.x, pos.y - size * 0.5);
-        this.ctx.lineTo(pos.x + size * 0.5, pos.y - size * 0.25);
-        this.ctx.lineTo(pos.x + size * 0.5, pos.y + size * 0.25);
-        this.ctx.lineTo(pos.x, pos.y);
-        this.ctx.closePath();
-        this.ctx.fill();
-        this.ctx.stroke();
-        
-        // 如果未填充，显示数字
-        if (!voxel.filled && this.voxel3D.voxelSize > 16) {
-            this.ctx.fillStyle = '#fff';
-            this.ctx.font = `${Math.max(8, this.voxel3D.voxelSize * 0.3)}px Arial`;
-            this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(voxel.targetColor.toString(), pos.x, pos.y - size * 0.15);
-        }
-        
-        this.ctx.restore();
-    }
-
-    /**
-     * 3D坐标投影到等轴2D坐标
-     */
-    project3DToIsometric(x, y, z, centerX, centerY) {
-        // 应用旋转
-        const cosY = Math.cos(this.voxel3D.camera.angleY * Math.PI / 180);
-        const sinY = Math.sin(this.voxel3D.camera.angleY * Math.PI / 180);
-        const cosX = Math.cos(this.voxel3D.camera.angleX * Math.PI / 180);
-        const sinX = Math.sin(this.voxel3D.camera.angleX * Math.PI / 180);
-        
-        // 旋转坐标
-        let tempX = x * cosY - z * sinY;
-        let tempZ = x * sinY + z * cosY;
-        let tempY = y * cosX - tempZ * sinX;
-        
-        const size = this.voxel3D.voxelSize;
-        
-        // 等轴投影
-        const isoX = (tempX - tempY) * size * 0.5;
-        const isoY = (tempX + tempY) * size * 0.25 - tempZ * size * 0.5;
-        
-        return {
-            x: centerX + isoX,
-            y: centerY + isoY
-        };
-    }
-
-    /**
-     * 颜色加亮
-     */
-    lightenColor(color, factor) {
-        const hex = color.replace('#', '');
-        const r = Math.min(255, Math.floor(parseInt(hex.substr(0, 2), 16) + (255 - parseInt(hex.substr(0, 2), 16)) * factor));
-        const g = Math.min(255, Math.floor(parseInt(hex.substr(2, 2), 16) + (255 - parseInt(hex.substr(2, 2), 16)) * factor));
-        const b = Math.min(255, Math.floor(parseInt(hex.substr(4, 2), 16) + (255 - parseInt(hex.substr(4, 2), 16)) * factor));
-        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-    }
-
-    /**
-     * 颜色加深
-     */
-    darkenColor(color, factor) {
-        const hex = color.replace('#', '');
-        const r = Math.floor(parseInt(hex.substr(0, 2), 16) * factor);
-        const g = Math.floor(parseInt(hex.substr(2, 2), 16) * factor);
-        const b = Math.floor(parseInt(hex.substr(4, 2), 16) * factor);
-        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-    }
-
-    /**
-     * 渲染3D控制提示
-     */
-    renderVoxel3DControls() {
-        this.ctx.save();
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(10, 10, 200, 80);
-        
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = '12px Arial';
-        this.ctx.textAlign = 'left';
-        this.ctx.fillText('3D体素控制:', 20, 30);
-        this.ctx.fillText('鼠标拖拽: 旋转视角', 20, 45);
-        this.ctx.fillText('滚轮: 缩放', 20, 60);
-        this.ctx.fillText('点击体素: 填色', 20, 75);
-        
-        this.ctx.restore();
-    }
-
-    /**
-     * 获取点击的体素
-     */
-    getVoxelAt(screenX, screenY) {
-        if (!this.gameData || this.gameData.gameType !== 'voxel3D') return null;
-        
-        const centerX = this.canvas.width / 2 + this.voxel3D.camera.offsetX;
-        const centerY = this.canvas.height / 2 + this.voxel3D.camera.offsetY;
-        
-        // 从后往前检查体素（与渲染顺序相反）
-        const sortedVoxels = this.sortVoxelsForRendering(this.gameData.voxels).reverse();
-        
-        for (const voxel of sortedVoxels) {
-            const pos = this.project3DToIsometric(voxel.x, voxel.y, voxel.z, centerX, centerY);
-            const size = this.voxel3D.voxelSize;
-            
-            // 检查点击是否在体素范围内（使用矩形边界框简化）
-            if (screenX >= pos.x - size * 0.5 && screenX <= pos.x + size * 0.5 &&
-                screenY >= pos.y - size * 0.5 && screenY <= pos.y + size * 0.25) {
-                return voxel;
-            }
-        }
-        
-        return null;
     }
 
     /**
@@ -839,17 +620,11 @@ class CanvasRenderer {
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             
-            if (this.gameData && this.gameData.gameType === 'voxel3D') {
-                // 3D体素缩放
-                const factor = e.deltaY > 0 ? 0.9 : 1.1;
-                this.voxel3D.camera.zoom = Math.max(0.3, Math.min(5, this.voxel3D.camera.zoom * factor));
-                this.renderVoxel3D(this.gameData);
-            } else {
-                // 2D缩放
-                const center = this.getCanvasCoordinates(e);
-                const factor = e.deltaY > 0 ? 0.9 : 1.1;
-                this.zoom(factor, center);
-            }
+            // 使用辅助函数获取正确的缩放中心
+            const center = this.getCanvasCoordinates(e);
+            
+            const factor = e.deltaY > 0 ? 0.9 : 1.1;
+            this.zoom(factor, center);
         });
 
         // 鼠标拖拽平移
@@ -866,21 +641,7 @@ class CanvasRenderer {
                 const deltaX = e.clientX - this.interaction.lastMousePos.x;
                 const deltaY = e.clientY - this.interaction.lastMousePos.y;
                 
-                // 检查是否是3D体素游戏
-                if (this.gameData && this.gameData.gameType === 'voxel3D') {
-                    // 3D旋转控制
-                    this.voxel3D.camera.angleY += deltaX * 0.5;
-                    this.voxel3D.camera.angleX += deltaY * 0.5;
-                    
-                    // 限制X轴旋转角度
-                    this.voxel3D.camera.angleX = Math.max(-80, Math.min(80, this.voxel3D.camera.angleX));
-                    
-                    // 重新渲染
-                    this.renderVoxel3D(this.gameData);
-                } else {
-                    // 2D平移
-                    this.pan(deltaX, deltaY);
-                }
+                this.pan(deltaX, deltaY);
                 
                 this.interaction.lastMousePos = { x: e.clientX, y: e.clientY };
             }
@@ -916,39 +677,24 @@ class CanvasRenderer {
             // 使用辅助函数获取正确的点击坐标
             const { x: canvasX, y: canvasY } = this.getCanvasCoordinates(e);
             
-            // 检查是否是3D体素游戏
-            if (this.gameData && this.gameData.gameType === 'voxel3D') {
-                const voxel = this.getVoxelAt(canvasX, canvasY);
-                if (voxel) {
-                    console.log(`[3D体素点击] 成功找到体素，准备填色...`);
-                    requestAnimationFrame(() => {
-                        const event = new CustomEvent('voxelClick', { detail: voxel });
-                        this.canvas.dispatchEvent(event);
-                    });
-                } else {
-                    console.log(`[3D体素点击] ❌ 未找到可点击的体素`);
-                }
+            console.log(`[坐标转换] 屏幕坐标: (${e.clientX.toFixed(2)}, ${e.clientY.toFixed(2)})`);
+            console.log(`[坐标转换] 校正后Canvas坐标: (${canvasX.toFixed(2)}, ${canvasY.toFixed(2)})`);
+            console.log(`[坐标转换] Canvas尺寸: ${this.canvas.width}x${this.canvas.height}`);
+            console.log(`[坐标转换] 变换状态: 缩放=${this.transform.scale.toFixed(2)}, 平移=(${this.transform.translateX.toFixed(2)}, ${this.transform.translateY.toFixed(2)})`);
+            
+            const worldPos = this.screenToWorld(canvasX, canvasY);
+            console.log(`[坐标转换] 世界坐标: (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)})`);
+            
+            const cell = this.getSmartCellAt(worldPos.x, worldPos.y);
+            
+            if (cell) {
+                console.log(`[点击结果] 成功找到格子，准备填色...`);
+                requestAnimationFrame(() => {
+                    const event = new CustomEvent('cellClick', { detail: cell });
+                    this.canvas.dispatchEvent(event);
+                });
             } else {
-                // 原有的2D游戏逻辑
-                console.log(`[坐标转换] 屏幕坐标: (${e.clientX.toFixed(2)}, ${e.clientY.toFixed(2)})`);
-                console.log(`[坐标转换] 校正后Canvas坐标: (${canvasX.toFixed(2)}, ${canvasY.toFixed(2)})`);
-                console.log(`[坐标转换] Canvas尺寸: ${this.canvas.width}x${this.canvas.height}`);
-                console.log(`[坐标转换] 变换状态: 缩放=${this.transform.scale.toFixed(2)}, 平移=(${this.transform.translateX.toFixed(2)}, ${this.transform.translateY.toFixed(2)})`);
-                
-                const worldPos = this.screenToWorld(canvasX, canvasY);
-                console.log(`[坐标转换] 世界坐标: (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)})`);
-                
-                const cell = this.getSmartCellAt(worldPos.x, worldPos.y);
-                
-                if (cell) {
-                    console.log(`[点击结果] 成功找到格子，准备填色...`);
-                    requestAnimationFrame(() => {
-                        const event = new CustomEvent('cellClick', { detail: cell });
-                        this.canvas.dispatchEvent(event);
-                    });
-                } else {
-                    console.log(`[点击结果] ❌ 未找到可点击的格子`);
-                }
+                console.log(`[点击结果] ❌ 未找到可点击的格子`);
             }
         });
 

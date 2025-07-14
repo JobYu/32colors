@@ -172,11 +172,12 @@ class VoxelParser {
     }
 
     /**
-     * Convert voxel data to 3D game format
+     * Convert voxel data to game grid format
      * @param {Object} voxelData - Parsed voxel data
-     * @returns {Object} 3D Game-ready voxel data
+     * @param {string} orientation - Which view to generate: 'top', 'front', 'side'
+     * @returns {Object} Game-ready grid data
      */
-    convertToGameData(voxelData) {
+    convertToGameData(voxelData, orientation = 'top') {
         const { size, voxels, palette } = voxelData;
         
         // Create 3D grid filled with empty cells
@@ -193,25 +194,81 @@ class VoxelParser {
             }
         });
 
-        // Collect used colors and create voxel cells
-        const usedColors = new Set();
-        const voxelCells = [];
+        // Project 3D to 2D based on orientation
+        let grid2D, width, height;
         
-        for (let z = 0; z < size.z; z++) {
-            for (let y = 0; y < size.y; y++) {
-                for (let x = 0; x < size.x; x++) {
-                    const colorIndex = grid3D[z][y][x];
-                    if (colorIndex !== null) {
-                        usedColors.add(colorIndex);
-                        voxelCells.push({
-                            x: x,
-                            y: y,
-                            z: z,
-                            colorIndex: colorIndex,
-                            filled: false,
-                            visible: true
-                        });
+        switch (orientation) {
+            case 'top': // Top-down view (X-Z plane)
+                width = size.x;
+                height = size.z;
+                grid2D = Array(height).fill(null).map(() => Array(width).fill(null));
+                
+                for (let z = 0; z < size.z; z++) {
+                    for (let x = 0; x < size.x; x++) {
+                        // Find highest voxel in this column (topmost)
+                        for (let y = size.y - 1; y >= 0; y--) {
+                            if (grid3D[z][y][x] !== null) {
+                                grid2D[z][x] = grid3D[z][y][x];
+                                break;
+                            }
+                        }
                     }
+                }
+                break;
+
+            case 'front': // Front view (X-Y plane)
+                width = size.x;
+                height = size.y;
+                grid2D = Array(height).fill(null).map(() => Array(width).fill(null));
+                
+                for (let y = 0; y < size.y; y++) {
+                    for (let x = 0; x < size.x; x++) {
+                        // Find frontmost voxel in this column
+                        for (let z = size.z - 1; z >= 0; z--) {
+                            if (grid3D[z][y][x] !== null) {
+                                grid2D[y][x] = grid3D[z][y][x];
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
+
+            case 'side': // Side view (Y-Z plane)
+                width = size.y;
+                height = size.z;
+                grid2D = Array(height).fill(null).map(() => Array(width).fill(null));
+                
+                for (let z = 0; z < size.z; z++) {
+                    for (let y = 0; y < size.y; y++) {
+                        // Find rightmost voxel in this column
+                        for (let x = size.x - 1; x >= 0; x--) {
+                            if (grid3D[z][y][x] !== null) {
+                                grid2D[z][y] = grid3D[z][y][x];
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
+        }
+
+        // Convert to game format
+        const usedColors = new Set();
+        const cellMap = [];
+        
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const colorIndex = grid2D[y][x];
+                if (colorIndex !== null) {
+                    usedColors.add(colorIndex);
+                    cellMap.push({
+                        x: x,
+                        y: y,
+                        color: colorIndex,
+                        filled: false,
+                        number: colorIndex
+                    });
                 }
             }
         }
@@ -225,16 +282,15 @@ class VoxelParser {
                 originalIndex: color.id
             }));
 
-        // Remap color indices to sequential numbers
+        // Remap color indices
         const colorRemap = {};
         usedPalette.forEach((color, idx) => {
             colorRemap[color.originalIndex] = idx + 1;
         });
 
-        // Update voxel cells with remapped colors
-        voxelCells.forEach(cell => {
-            cell.number = colorRemap[cell.colorIndex];
-            cell.targetColor = colorRemap[cell.colorIndex];
+        cellMap.forEach(cell => {
+            cell.color = colorRemap[cell.color];
+            cell.number = cell.color;
         });
 
         // Update palette indices
@@ -243,15 +299,15 @@ class VoxelParser {
         });
 
         return {
-            dimensions: size,
-            voxels: voxelCells,
-            grid3D: grid3D,
+            width: width,
+            height: height,
+            cells: cellMap,
             palette: usedPalette,
             metadata: {
                 originalSize: size,
+                orientation: orientation,
                 voxelCount: voxels.length,
-                type: 'voxel3D',
-                totalVoxels: voxelCells.length
+                type: 'voxel'
             }
         };
     }
