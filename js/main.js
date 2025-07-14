@@ -1397,11 +1397,29 @@ class ColorByNumbersApp {
      * 处理voxel模型点击
      */
     async handleVoxelModelClick(model) {
+        // 防止重复点击
+        if (this.isProcessing) {
+            Utils.showNotification('Already processing, please wait...', 'warning');
+            return;
+        }
+
         try {
+            this.isProcessing = true;
             Utils.showNotification('Loading voxel model...', 'info');
             
             // 从URL加载voxel文件
             const voxelData = await this.voxelParser.loadFromUrl(model.path);
+            
+            // 验证加载的数据
+            if (!voxelData || !voxelData.size || !voxelData.voxels) {
+                throw new Error('Invalid voxel data structure');
+            }
+            
+            console.log('Voxel data loaded:', {
+                size: voxelData.size,
+                voxelCount: voxelData.voxels.length,
+                paletteSize: voxelData.palette ? voxelData.palette.length : 0
+            });
             
             this.currentUploadedImageName = model.name;
             
@@ -1413,6 +1431,8 @@ class ColorByNumbersApp {
         } catch (error) {
             console.error('Error loading voxel model:', error);
             Utils.showNotification(`Failed to load voxel model: ${error.message}`, 'error');
+        } finally {
+            this.isProcessing = false;
         }
     }
 
